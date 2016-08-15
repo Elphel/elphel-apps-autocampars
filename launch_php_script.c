@@ -36,9 +36,10 @@
 #include <errno.h>
 #include <sys/wait.h>
 
-#include <asm/elphel/c313a.h>
+#include <elphel/c313a.h>
+#include <elphel/x393_devices.h>
 int main (int argc, char *argv[]) {
-  if (argc < 3) {
+  if (argc < 4) {
     printf ("  This is a companion program that works with PHP scripts to make a daemon,\n"
             "conserving memory footprint when disabled.\n"
             "It waits for the the specified bit in the global daemon control word (P_DAEMON_EN)\n"
@@ -48,18 +49,20 @@ int main (int argc, char *argv[]) {
             "when this bit is cleared) and launches the script again. That reduces memory usage\n"
             "when the script is disabled - no need to keep PHP interpreter in teh memory (>2MB)\n\n"
             "Usage:\n"
-            "%s <bit_number> <command> [<parameter>...]\n",argv[0]);
+            "%s <sensor_port> <bit_number> <command> [<parameter>...]\n",argv[0]);
             exit (1);
   }
   int pid, status;
-  int en_bit=strtol(argv[1], NULL, 10);
-  if ((en_bit<0) || (en_bit>31)) {printf ("Invalid bit number %d (should be 0..31)\n", en_bit); exit (1);}
-
-  const char framepars_driver_name[]="/dev/frameparsall";
-  int fd_fparmsall= open(framepars_driver_name, O_RDONLY);
+  const char *framepars_driver_name[]={DEV393_PATH(DEV393_FRAMEPARS0), DEV393_PATH(DEV393_FRAMEPARS1),//"/dev/frameparsall";
+                                       DEV393_PATH(DEV393_FRAMEPARS2), DEV393_PATH(DEV393_FRAMEPARS3)};
+  int port = strtol(argv[1], NULL, 10) & 3;
+  int en_bit=strtol(argv[2], NULL, 10);
   int rslt;
+  int fd_fparmsall;
+  if ((en_bit<0) || (en_bit>31)) {printf ("Invalid bit number %d (should be 0..31)\n", en_bit); exit (1);}
+  fd_fparmsall= open(framepars_driver_name[port], O_RDONLY);
   if (fd_fparmsall <0) {
-     ELP_FERR(fprintf(stderr, "Open failed: (%s)\n", framepars_driver_name));
+     ELP_FERR(fprintf(stderr, "Open failed: (%s)\n", framepars_driver_name[port]));
      exit (1);
   }
 /// Daemon loop - waiting for being enabled, run script
@@ -74,7 +77,7 @@ int main (int argc, char *argv[]) {
    } else if (pid == 0) { /// child
        fflush(stdout);
        fflush(stderr);
-       rslt= execv(argv[2], &argv[2]); /// script path, all parameters starting with the script path
+       rslt= execv(argv[3], &argv[3]); /// script path, all parameters starting with the script path
        ELP_FERR(fprintf(stderr, "execl failed, returned %d, errno=%d\n", rslt,errno));
       _exit(2);/// comes here only if error
    } /// Only parent will get below here

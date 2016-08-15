@@ -1,10 +1,11 @@
 html/*
 attic/*
-.project
-.cproject
-.pydevproject
-.settings
-*.directory
+/.project
+/.cproject
+/.pydevproject
+/.externalToolBuilders
+/.settings
+.directory
 generated*
 sysroots
 bitbake-logs

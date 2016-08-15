@@ -1,4 +1,4 @@
-#!/usr/local/sbin/php -q
+#!/usr/bin/env php -q
 <?php
 /*!
 *! PHP script
@@ -181,9 +181,10 @@
   Revision 1.1  2008/11/17 06:41:20  elphel
   8.0.alpha18 - started autocampars - camera parameters save/restore/init manager
 CVSLOG;
-require 'i2c.inc'; /// to read 10359 info
+require 'i2c.inc'; /// to read 10359 info //TODO NC393 - update to read sensor port!
 
 //main()
+  $sensor_port = 0;
   $p=strpos ($cvslog,"Revision");
   $version=strtok(substr($cvslog,$p+strlen("Revision"),20)," ");
 //  echo "<pre>";
@@ -197,15 +198,61 @@ require 'i2c.inc'; /// to read 10359 info
   $twoColumns=false;
 //  $configPath=      "/var/autocampars.xml";
 //  $backupConfigPath="/var/autocampars.xml.backup";
-  $configPath=      "/etc/autocampars.xml";
-  $backupConfigPath="/etc/autocampars.xml.backup";
+//  $configPath=      "/etc/autocampars.xml";
+//  $backupConfigPath="/etc/autocampars.xml.backup";
   $logFilePath=     "/var/log/autocampars.log";
-  $m10359Path=      "/var/state/10359"; /// used to select multisensor defaults
-  $sensor_state_file="/var/state/ctype";
-  $logFile=         fopen($logFilePath,"a");
+//  $m10359Path=      "/var/state/10359"; /// used to select multisensor defaults
+//  $sensor_state_file="/var/state/ctype";
+
+  $configPaths=   array("/etc/elphel393/autocampars0.xml",
+				  		"/etc/elphel393/autocampars1.xml",
+				  		"/etc/elphel393/autocampars2.xml",
+				  		"/etc/elphel393/autocampars3.xml");
+  $backupConfigPaths= array("/etc/elphel393/autocampars0.xml.backup",
+					  		"/etc/elphel393/autocampars1.xml.backup",
+					  		"/etc/elphel393/autocampars2.xml.backup",
+					  		"/etc/elphel393/autocampars3.xml.backup");
+  // FIXME: NC393 - use sysfs to read 10359 and sensor configuration 
+  $m10359Paths=       array("/var/state/10359.0",
+					  		"/var/state/10359.1",
+					  		"/var/state/10359.2",
+					  		"/var/state/10359.3"); /// used to select multisensor defaults
+  $sensor_state_files=array ("/var/state/ctype.0",
+  		                     "/var/state/ctype.1",
+					  		 "/var/state/ctype.2",
+					  		 "/var/state/ctype.3");
+  $framepars_paths = array ("/dev/frameparsall0",
+					  		"/dev/frameparsall1",
+					  		"/dev/frameparsall2",
+					  		"/dev/frameparsall3");
+///  $framepars_file=fopen("/dev/frameparsall","r");
+  
+  
+  $logFile=         fopen($logFilePath,"a"); // common for all ports
+                                           
+	// process program arguments tgo get sensor port:
+	foreach ( $_SERVER ['argv'] as $param ) {
+		if (substr ( $param, 0, 7 ) == "--port=") {
+			$param = substr ( $param, 7 );
+			if (strlen ( $param ) > 0)
+				$GLOBALS ['sensor_port'] = (myval ( $param )) & 3;
+		}
+	}
+	// Now - HTTP GET (may overwrite)
+	if (array_key_exists ( 'sensor_port', $_GET )) {
+		$sensor_port = (myval($_GET ['sensor_port'])) & 3;
+	}
+   
+	$configPath=        $configPaths        [$sensor_port];
+	$backupConfigPath=  $backupConfigPaths  [$sensor_port];
+	$m10359Path=        $m10359Paths        [$sensor_port]; /// used to select multisensor defaults
+	$sensor_state_file= $sensor_state_files [$sensor_port];
+	$framepars_path =   $framepars_files    [$sensor_port];
+	
+	
   $useDefaultPageNumber=15;
   $protectedPage=0;  /// change to -1 to enable saving to page 0
-  $needDetection= (elphel_get_P_value(ELPHEL_SENSOR)<=0); /// we need sensor detection to be started before we can read 10359 eeprom and so select default parameters
+  $needDetection= (elphel_get_P_value($GLOBALS['sensor_port'],ELPHEL_SENSOR)<=0); /// we need sensor detection to be started before we can read 10359 eeprom and so select default parameters
   // check load command
   if($_GET['load'] != '') {
     $load_filename = $_GET['load'];
@@ -301,14 +348,11 @@ require 'i2c.inc'; /// to read 10359 info
         if (strlen($param)>0) $initPage=myval($param);
         if (($initPage<0) || ($initPage > $useDefaultPageNumber)) $initPage=$useDefaultPageNumber;
         $init=true; 
-//        break;
       } else if (substr($param,0,8)=="--daemon") {
         $daemon=true;
-//        break;
       } else if ($param=='--ignore-revision') {
         $config['version']=$version;
         saveRotateConfig($numBackups);
-//        break;
       }
     }
     if (!$daemon && !$init) {
@@ -399,10 +443,10 @@ function sync2master($timeout=120,$min_frame_master=30) {
   if (count ($this_ip)!=4 ) return -1;
   $master_ip=$this_ip[0].'.'.$this_ip[1].'.'.$this_ip[2].'.'.($this_ip[3]-$IP_shift+1);
   $noaexp=array("DAEMON_EN"=>0,"EXPOS"=>1);
-  elphel_skip_frames(4); /// 3 here is minimum, otherwise DAEMON_EN is still 0 (after init itself) 
-  $saved_autoexp=elphel_get_P_arr($noaexp);
-  elphel_set_P_arr($noaexp);
-  elphel_skip_frames(4); /// to be sure exposure is applied
+  elphel_skip_frames($GLOBALS['sensor_port'],4); /// 3 here is minimum, otherwise DAEMON_EN is still 0 (after init itself) 
+  $saved_autoexp=elphel_get_P_arr($GLOBALS['sensor_port'],$noaexp);
+  elphel_set_P_arr($GLOBALS['sensor_port'],$noaexp);
+  elphel_skip_frames($GLOBALS['sensor_port'],4); /// to be sure exposure is applied
   echo ('Synchronizing with '.$master_ip."\n");
 /// Make sure eth0 is up, otherwise wait for $timeout seconds and reboot
   $abort_time=time()+$timeout;
@@ -411,7 +455,7 @@ function sync2master($timeout=120,$min_frame_master=30) {
     exec  ('/usr/sbin/mii-diag eth0 --status >/dev/null',$output, $retval);
     if ($retval!=0) {
       echo time().": waiting for eth0 to come up\n";
-      elphel_skip_frames(1);
+      elphel_skip_frames($GLOBALS['sensor_port'],1);
     }
   }
 //  passthru ('/usr/sbin/mii-diag eth0 --status');
@@ -428,7 +472,7 @@ function sync2master($timeout=120,$min_frame_master=30) {
     $master_frame=file_get_contents('http://'.$master_ip.':8081/wframe)')+0; /// will wait
     if (($master_frame===false) || ($master_frame<$min_frame_master)) {
       echo time().": waiting for eth0 to come up\n";
-      elphel_skip_frames(1);
+      elphel_skip_frames($GLOBALS['sensor_port'],1);
     }
   }
 
@@ -438,24 +482,26 @@ function sync2master($timeout=120,$min_frame_master=30) {
   }
 
 
-  $this_frame=elphel_get_frame();
+  $this_frame=elphel_get_frame($GLOBALS['sensor_port']);
   echo 'Master frame='.$master_frame."\n";
   echo 'This frame='.$this_frame."\n";
   $skip= (1+$hardware_mask + ($this_frame& $hardware_mask)  - ($master_frame & $hardware_mask)) & $hardware_mask;
   echo 'skip '.$skip." frames\n";
+  // FIXME: NC393 - replace
+  /*
   if ($skip>0) {
     elphel_fpga_write($fpga_trig_period,0);/// stop trigger input
     for ($i=0;$i<$skip;$i++) $master_frame=file_get_contents('http://'.$master_ip.':8081/wframe)')+0; /// will wait
-    elphel_fpga_write($fpga_trig_period,elphel_get_P_value(ELPHEL_TRIG_PERIOD));/// restore trigger
-  }
-  elphel_set_P_value(ELPHEL_THIS_FRAME,$master_frame+0);
+    elphel_fpga_write($fpga_trig_period,elphel_get_P_value($GLOBALS['sensor_port'],ELPHEL_TRIG_PERIOD));/// restore trigger
+  }*/
+  elphel_set_P_value($GLOBALS['sensor_port'],ELPHEL_THIS_FRAME,$master_frame+0);
 //  $master_frame=file_get_contents('http://'.$master_ip.':8081/wframe)')+0; /// will wait
 //  $this_frame=elphel_get_frame();
 //  echo "\nafter sync:\n";
 //  echo 'Master frame='.$master_frame."\n";
 //  echo 'This frame='.$this_frame."\n";
 /// restore (auto)exposure
-  elphel_set_P_arr($saved_autoexp);
+  elphel_set_P_arr($GLOBALS['sensor_port'],$saved_autoexp);
 //  var_dump($saved_autoexp); 
 }
 
@@ -487,25 +533,25 @@ function  get_eyesis_mode() {
   return 0;
 }
 function detectSensor() {
-  global $logFile;
+  global $logFile, $framepars_path;
   $maxWait=5.0; ///sec
   $waitDaemons=5.0; /// Wait for daemons to stop (when disabled) before resetting frame number.
                     /// They should look at thei enable bit periodically and restart if the frame is
                     /// the frame is not what they were expecting to be
   $sleepOnce=0.1;
 /// Here trying full reset with zeroing the absolute frame number, setting all frame parameters to 0 and starting
-  $framepars_file=fopen("/dev/frameparsall","r");
+  $framepars_file=fopen($framepars_path,"r");
 ///TODO: Improve sequence here so it will not depend on delays
   fseek($framepars_file,ELPHEL_LSEEK_FRAMEPARS_INIT,SEEK_END);                      /// NOTE: resets all the senor parameters (tasklet control)
-///  elphel_set_P_value(ELPHEL_SENSOR, 0x00, 0, ELPHEL_CONST_FRAMEPAIR_FORCE_NEWPROC);/// set sensor to 0 will start detection
-  echo "before reset - current frame=".elphel_get_frame()."\n";
-//  elphel_set_P_value(ELPHEL_SENSOR, 0x00, 0, ELPHEL_CONST_FRAMEPAIR_FORCE_NEWPROC);/// set sensor to 0 will start detection
-  elphel_set_P_value(ELPHEL_SENSOR, 0x00, elphel_get_frame(), ELPHEL_CONST_FRAMEPAIR_FORCE_NEWPROC);/// set sensor to 0 will start detection
+///  elphel_set_P_value($GLOBALS['sensor_port'],ELPHEL_SENSOR, 0x00, 0, ELPHEL_CONST_FRAMEPAIR_FORCE_NEWPROC);/// set sensor to 0 will start detection
+  echo "before reset - current frame=".elphel_get_frame($GLOBALS['sensor_port'])."\n";
+//  elphel_set_P_value($GLOBALS['sensor_port'],ELPHEL_SENSOR, 0x00, 0, ELPHEL_CONST_FRAMEPAIR_FORCE_NEWPROC);/// set sensor to 0 will start detection
+  elphel_set_P_value($GLOBALS['sensor_port'],ELPHEL_SENSOR, 0x00, elphel_get_frame($GLOBALS['sensor_port']), ELPHEL_CONST_FRAMEPAIR_FORCE_NEWPROC);/// set sensor to 0 will start detection
   fseek($framepars_file,ELPHEL_LSEEK_SENSORPROC,    SEEK_END);                      /// In case the autoprocessing after parameter write will be disabled in the future
                                                                                     /// (normally parameters are processed at frame sync interrupts - not yet available)
   fclose ($framepars_file);
 /// Sensor should be up and running. let's wait for up to $maxWait seconds
-  for ($t=0; elphel_get_frame()==0; $t+=$sleepOnce) {
+  for ($t=0; elphel_get_frame($GLOBALS['sensor_port'])==0; $t+=$sleepOnce) {
     usleep ($sleepOnce*1000000);
     if ($t>$maxWait) {
       fwrite ($logFile,"Sensor failed to initialize at ".date("F j, Y, g:i a")."\n");
@@ -524,20 +570,20 @@ function processInit($initPage, $needDetection=true) {
                     /// They should look at thei enable bit periodically and restart if the frame is
                     /// the frame is not what they were expecting to be
 
-  if (elphel_get_frame()>0) {
-     echo "Current frame=".elphel_get_frame().", sleeping to give daemons a chance\n";
-     elphel_set_P_value(ELPHEL_COMPRESSOR_RUN, 0x00, 0, ELPHEL_CONST_FRAMEPAIR_FORCE_NEWPROC); /// turn compressor off
-     elphel_set_P_value(ELPHEL_DAEMON_EN, 0x00, 0, ELPHEL_CONST_FRAMEPAIR_FORCE_NEWPROC);      /// turn daemons off
+  if (elphel_get_frame($GLOBALS['sensor_port'])>0) {
+     echo "Current frame=".elphel_get_frame($GLOBALS['sensor_port']).", sleeping to give daemons a chance\n";
+     elphel_set_P_value($GLOBALS['sensor_port'],ELPHEL_COMPRESSOR_RUN, 0x00, 0, ELPHEL_CONST_FRAMEPAIR_FORCE_NEWPROC); /// turn compressor off
+     elphel_set_P_value($GLOBALS['sensor_port'],ELPHEL_DAEMON_EN, 0x00, 0, ELPHEL_CONST_FRAMEPAIR_FORCE_NEWPROC);      /// turn daemons off
      usleep ($waitDaemons*1000000);
-     echo "Current frame=".elphel_get_frame().", waking up, daemons should be dead already\n";
+     echo "Current frame=".elphel_get_frame($GLOBALS['sensor_port']).", waking up, daemons should be dead already\n";
   } 
   if ($needDetection) {
     if (!detectSensor()) RETURN -1;
   }
-  echo "after reset - current frame=".elphel_get_frame()."\n";
+  echo "after reset - current frame=".elphel_get_frame($GLOBALS['sensor_port'])."\n";
 //  $page=setParsFromPage($initPage,0xffffffff,true); /// all parameters, init mode - treat all parameters as new, even when they are the same as current (0)
   $page=setParsFromPage($initPage,0x1,true); ///only init parameters?
-  echo "after setParsFromPage - current frame=".elphel_get_frame()."\n";
+  echo "after setParsFromPage - current frame=".elphel_get_frame($GLOBALS['sensor_port'])."\n";
   return $page;
 /*!
 Strange with autoexposure - for frame #006 it gets zero pixels in the histogram, 7 - 0x3fff
@@ -550,7 +596,7 @@ frame 11 (0xb) - normal total_pixels=0x4c920
 function processDaemon() {
   global $config,  $useDefaultPageNumber, $protectedPage,$numBackups;
 
-  $AUTOCAMPARS=elphel_get_P_arr(array("AUTOCAMPARS_CMD"=>null, "AUTOCAMPARS_GROUPS"=>null,"AUTOCAMPARS_PAGE"=>null));
+  $AUTOCAMPARS=elphel_get_P_arr($GLOBALS['sensor_port'],array("AUTOCAMPARS_CMD"=>null, "AUTOCAMPARS_GROUPS"=>null,"AUTOCAMPARS_PAGE"=>null));
 //  echo "processDaemon()\n";
 //  print_r($AUTOCAMPARS);
   $page=     myval($AUTOCAMPARS['AUTOCAMPARS_PAGE']);
@@ -638,7 +684,11 @@ function processPost() {
 ///TODO: Make the contol page aware of stuck sensor (sleep 1, then 5)? and suggest init if frame is not changing
 
 function processGet() {
-  global $config,$twoColumns,$configPath,$version;
+  global $config,$twoColumns,$configPath,$version, $sensor_port;
+  // New in NC393 - get sensor port from URL - moved to startup of the script
+//  if (array_key_exists('sensor_port',$_GET)) {
+//  	 $sensor_port = (int) $_GET['sensor_port'];
+//  }
   if (array_key_exists('ignore-revision',$_GET) && ($version != $config['version'])) {
      $config['version']=$version;
      saveRotateConfig($numBackups);
@@ -660,7 +710,7 @@ WARN;
     exit (1);
   }
 
-  $page_title="Model 353 Camera Parameters save/restore";
+  $page_title="Model 393 Camera Parameters save/restore";
   startPage($page_title, mainJavascript());
   if ($twoColumns) printf ("<table><tr><td style='vertical-align: top'>\n");
   writeGroupsTable();
@@ -852,7 +902,7 @@ function  addGammas($pars) {
    foreach ($gammas as $gamma_black=>$whatever) {
      $black=($gamma_black>>8) & 0xff;
      $gamma=($gamma_black & 0xff)*0.01;
-     elphel_gamma_add ($gamma, $black);
+     elphel_gamma_add ($gamma, $black); // does not use $GLOBALS['sensor_port'],
    }
 }
 
@@ -897,18 +947,18 @@ function setParsFromPage($page,$mask,$initmode=false) {
       if (isset($daemon_en['DAEMON_EN_CAMOGM']))       $daemon_en['DAEMON_EN'] |= $daemon_en['DAEMON_EN_CAMOGM']?      8:0;
       if (isset($daemon_en['DAEMON_EN_TEMPERATURE']))  $daemon_en['DAEMON_EN'] |= $daemon_en['DAEMON_EN_TEMPERATURE']?32:0;
     }
-    elphel_set_P_arr(array('COMPRESSOR_RUN'=>0,'DAEMON_EN'=>0),-1,ELPHEL_CONST_FRAMEPAIR_FORCE_NEWPROC);
-    elphel_skip_frames(2);
-    elphel_set_P_arr($parToSet,-1,ELPHEL_CONST_FRAMEPAIR_FORCE_NEWPROC);
-    elphel_skip_frames(2); ///Adjust?
-    elphel_set_P_arr($compressor_run,-1,ELPHEL_CONST_FRAMEPAIR_FORCE_NEWPROC);
+    elphel_set_P_arr($GLOBALS['sensor_port'],array('COMPRESSOR_RUN'=>0,'DAEMON_EN'=>0),-1,ELPHEL_CONST_FRAMEPAIR_FORCE_NEWPROC);
+    elphel_skip_frames($GLOBALS['sensor_port'],2);
+    elphel_set_P_arr($GLOBALS['sensor_port'],$parToSet,-1,ELPHEL_CONST_FRAMEPAIR_FORCE_NEWPROC);
+    elphel_skip_frames($GLOBALS['sensor_port'],2); ///Adjust?
+    elphel_set_P_arr($GLOBALS['sensor_port'],$compressor_run,-1,ELPHEL_CONST_FRAMEPAIR_FORCE_NEWPROC);
     echo "setting COMPRESSOR_RUN=".$compressor_run['COMPRESSOR_RUN']."\n";
-    elphel_skip_frames(4); ///Adjust? So streamer will have at least 2 good frames in buffer?
-    elphel_set_P_arr($daemon_en,-1,ELPHEL_CONST_FRAMEPAIR_FORCE_NEWPROC);
+    elphel_skip_frames($GLOBALS['sensor_port'],4); ///Adjust? So streamer will have at least 2 good frames in buffer?
+    elphel_set_P_arr($GLOBALS['sensor_port'],$daemon_en,-1,ELPHEL_CONST_FRAMEPAIR_FORCE_NEWPROC);
     echo "setting DAEMON_EN=";print_r($daemon_en);echo "\n";
 //    print_r($parToSet);echo "\n";
   } else {
-    elphel_set_P_arr($parToSet);
+    elphel_set_P_arr($GLOBALS['sensor_port'],$parToSet);
   }
   return $page;
 }
@@ -919,12 +969,12 @@ function readParsToPage($page) {
   if ($page==$useDefaultPageNumber) $page=$config['nextPage']; /// 0 is write protected
   if ($page == $protectedPage) $page=findNextPage($page);
 // echo "\nbefore:";print_r($config);
-  $config['paramSets'][$page]=elphel_get_P_arr($config['groups']); /// 'text' parameters will be just ignored
+  $config['paramSets'][$page]=elphel_get_P_arr($GLOBALS['sensor_port'],$config['groups']); /// 'text' parameters will be just ignored
   $config['paramSets'][$page]['comment']="Saved on ".date("F j, Y, g:i a");
   $config['paramSets'][$page]['timestamp']=time();
 // echo "\nafter:";print_r($config);
   $config['nextPage']=findNextPage($page);
-  elphel_set_P_arr(array("AUTOCAMPARS_PAGE"=>$page+0)); /// will set some (3?) frames ahead so not yet available until waited enough
+  elphel_set_P_arr($GLOBALS['sensor_port'],array("AUTOCAMPARS_PAGE"=>$page+0)); /// will set some (3?) frames ahead so not yet available until waited enough
 //  echo "Saved to page $page, result=$result\n";
   return $page;
 //date("F j, Y, g:i a")
@@ -1068,7 +1118,7 @@ function calculateDefaultPhases(){
                'MULTI_PHASE1'=>0,
                'MULTI_PHASE2'=>0,
                'MULTI_PHASE3'=>0);
- $phases=elphel_get_P_arr($phases); // get current values
+ $phases=elphel_get_P_arr($GLOBALS['sensor_port'],$phases); // get current values
 /**TODO:  Here read and compare the 10359 (REV>=B)  and 10338 (REV>=E), read other persistent parameters (set by /etc/fpga, defined in c313a.h, such as
 #define G_CABLE_TIM     (FRAMEPAR_GLOBALS + 7) /// Extra cable delay, signed ps)
 #define G_FPGA_TIM0     (FRAMEPAR_GLOBALS + 8) /// FPGA timing parameter 0 - difference between DCLK pad and DCM input, signed (ps)
@@ -1102,7 +1152,7 @@ Do not forget 'global' :-)
       if ($xml->model=="10338"){
 	    $len = $xml->len;
 	    $DCM_STEP = 22; //  ps/step
-	    $clk_period = 1000000000000.0/elphel_get_P_value(ELPHEL_CLK_SENSOR);
+	    $clk_period = 1000000000000.0/elphel_get_P_value($GLOBALS['sensor_port'],ELPHEL_CLK_SENSOR);
 	    
 	    $cable_len_ps = $len*15;//15ps/mm
 	    $px_delay = $cable_len_ps;
