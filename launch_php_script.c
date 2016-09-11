@@ -47,7 +47,7 @@ int main (int argc, char *argv[]) {
             "with optional parameters, blocking itself until the script terminates.\n\n"
             "  After that it sleeps again until the bit is reenabled (normally script exits\n"
             "when this bit is cleared) and launches the script again. That reduces memory usage\n"
-            "when the script is disabled - no need to keep PHP interpreter in teh memory (>2MB)\n\n"
+            "when the script is disabled - no need to keep PHP interpreter in the memory (>2MB)\n\n"
             "Usage:\n"
             "%s <sensor_port> <bit_number> <command> [<parameter>...]\n",argv[0]);
             exit (1);

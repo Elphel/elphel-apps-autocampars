@@ -64,7 +64,7 @@ int main (int argc, char *argv[]) {
     char sport[10];
     int port = 0;
     if (argc <2){
-        ELP_FERR(fprintf(stderr, "Sensor porft not provided (%s)\n", argv[0]));
+        ELP_FERR(fprintf(stderr, "Sensor port not provided (%s)\n", argv[0]));
         exit (1);
     }
     port = strtol(argv[1], NULL,10) & 3;
@@ -76,7 +76,7 @@ int main (int argc, char *argv[]) {
         ELP_FERR(fprintf(stderr, "Open failed: (%s)\n", framepars_driver_name[port]));
         exit (1);
     }
-    ///TODO: Use it to re-running ccamftp.php
+    ///TODO: Use it to re-run ccamftp.php
     /// see if any arguments are provided. If they are - they are bit number, sleep time in seconds and command/arguments of an external program
     /// to be launched. Usually - a php script, so it makes sense not to keep the php instance in memory if it is not used most of the time
     /// (done so for ccamftp.php)

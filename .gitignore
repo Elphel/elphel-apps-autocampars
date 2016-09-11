@@ -1,4 +1,4 @@
-html/*
+*.o
 attic/*
 /.project
 /.cproject
@@ -9,3 +9,6 @@ attic/*
 generated*
 sysroots
 bitbake-logs
+autocampars
+launch_php_script
+temp
