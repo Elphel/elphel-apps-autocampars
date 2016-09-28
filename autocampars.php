@@ -181,8 +181,13 @@
   Revision 1.1  2008/11/17 06:41:20  elphel
   8.0.alpha18 - started autocampars - camera parameters save/restore/init manager
 CVSLOG;
+set_include_path(get_include_path() . PATH_SEPARATOR . '/www/pages/include');
 require 'i2c.inc'; /// to read 10359 info //TODO NC393 - update to read sensor port!
+/*
+ Warning: require(i2c.inc): failed to open stream: No such file or directory in /www/pages/autocampars.php on line 183
 
+Fatal error: require(): Failed opening required 'i2c.inc' (include_path='.:/usr/lib/php5/php') in /www/pages/autocampars.php on line 183
+ */
 //main()
   $sensor_port = 0;
   $p=strpos ($cvslog,"Revision");
