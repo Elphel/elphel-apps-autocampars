@@ -42,7 +42,7 @@ install: $(PROGS) $(PHPSCRIPTS)
 	$(INSTALL) $(OWN) -m $(INSTMODE) $(PHPSCRIPTS) $(DOCUMENTROOT)
 
 clean:
-	rm -rf $(PROGS) *.o core
+	rm -rf $(PROGS) *.o core .depend
 
 depend: .depend
 
