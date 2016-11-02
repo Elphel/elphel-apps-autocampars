@@ -43,7 +43,6 @@ install: $(PROGS) $(PHPSCRIPTS)
 
 clean:
 	rm -rf $(PROGS) *.o core
-configsubs:
 
 depend: .depend
 
