@@ -432,7 +432,7 @@ function sync2master($timeout=120,$min_frame_master=30) {
 
   if (!file_exists('/var/state/APPLICATION') || !file_exists('/var/state/APPLICATION_MODE')) return -1; 
   $application=     file_get_contents('/var/state/APPLICATION');
-  $IP_shift=(file_get_contents('/var/state/APPLICATION_MODE')+0) % 100; // 0 - SINGLE, 1..3 - Eyesis, 101+ Eyesis4pi
+  $IP_shift=(file_get_contents('/var/state/APPLICATION_MODE')+0) % 100; // 0 - SINGLE, 1..3 - Eyesis, 101+ Eyesis4pi, 1001..1003 - E4pi393
   if ($application!='EYESIS') return 0; /// not supported yet
   if ($IP_shift==1) return 0;   /// it is the master (101 will also get here)
   $neteth0=file('/etc/conf.d/net.eth0');

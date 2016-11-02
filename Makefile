@@ -1,47 +1,27 @@
-PROGS      = autocampars launch_php_script
-PHPSCRIPTS = autocampars.php
-SRCS       = autocampars.c launch_php_script.c
-#OBJS =       $(SRC:.c=.o)
-OBJS       = autocampars.o launch_php_script.o
+# Runs 'make', 'make install', and 'make clean' in specified subdirectories
+SUBDIRS := src
+INSTALLDIRS = $(SUBDIRS:%=install-%)
+CLEANDIRS =   $(SUBDIRS:%=clean-%)
 
+#TARGETDIR=$(DESTDIR)/www/pages
 
-BINDIR       = $(DESTDIR)/usr/bin
-SYSCONFDIR   = $(DESTDIR)/etc
-CONFDIR      = $(SYSCONFDIR)/elphel393
-DOCUMENTROOT = $(DESTDIR)/www/pages
-AUTOCAMPARS_PHP = /www/pages/autocampars.php
+all: $(SUBDIRS)
+	@echo "make all top"
 
-INSTALL    = install
-INSTMODE   = 0755
-INSTDOCS   = 0644
-OWN =        -o root -g root
+$(SUBDIRS):
+	$(MAKE) -C $@
 
-INCDIR     = $(STAGING_DIR_HOST)/usr/include-uapi
-#CFLAGS   += -Wall -I$(INCDIR)
-CFLAGS   += -Wall -I$(STAGING_DIR_HOST)/usr/include-uapi -D 'AUTOCAMPARS_PHP="$(AUTOCAMPARS_PHP)"'
+install: $(INSTALLDIRS)
+	@echo "make install top"
 
-all: $(PROGS)
+$(INSTALLDIRS): 
+	$(MAKE) -C $(@:install-%=%) install
 
-#$(PROGS): $(OBJS)
-#	$(CC) $(LDFLAGS) $^ $(LDLIBS) -o $@
+clean: $(CLEANDIRS)
+	@echo "make clean top"
 
-autocampars: autocampars.o
-	$(CC) $(LDFLAGS) $^ $(LDLIBS) -o $@
-	@echo "AUTOCAMPARS_PHP=$(AUTOCAMPARS_PHP)"
-   
-launch_php_script: launch_php_script.o
-	$(CC) $(LDFLAGS) $^ $(LDLIBS) -o $@
-	
+$(CLEANDIRS): 
+	$(MAKE) -C $(@:clean-%=%) clean
 
-install: $(PROGS) $(PHPSCRIPTS)
-	$(INSTALL) -d $(BINDIR)
-	$(INSTALL) -d $(DOCUMENTROOT)
-	$(INSTALL) -d $(SYSCONFDIR)
-	$(INSTALL) -d $(CONFDIR)
-	$(INSTALL) $(OWN) -m $(INSTMODE) $(PROGS) $(BINDIR)
-	$(INSTALL) $(OWN) -m $(INSTMODE) $(PHPSCRIPTS) $(DOCUMENTROOT)
-
-clean:
-	rm -rf $(PROGS) *.o core
-configsubs:
+.PHONY: all install clean $(SUBDIRS) $(INSTALLDIRS) $(CLEANDIRS)
 

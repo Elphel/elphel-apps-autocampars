@@ -1,11 +1,14 @@
 *.o
+*.kate-swp
 attic/*
 /.project
 /.cproject
 /.pydevproject
 /.externalToolBuilders
 /.settings
+/image
 .directory
+.depend
 generated*
 sysroots
 bitbake-logs
