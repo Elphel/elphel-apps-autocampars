@@ -183,21 +183,24 @@
 CVSLOG;
 set_include_path ( get_include_path () . PATH_SEPARATOR . '/www/pages/include' );
 require 'i2c_include.php'; // / to read 10359 info //TODO NC393 - update to read sensor port!
-                           // main()
+//*************** TODO: make Makefile insert revision from bitbake using sed *************
 date_default_timezone_set('UTC');
-//$sensor_port = 0;
+//var_dump($_SERVER);
+$GLOBALS['VERSION'] = '___VERSION___';
+$GLOBALS['SRCREV'] =  '___SRCREV___';
+
 $GLOBALS['STATES']=array("BOOT","POWERED", "BITSTREAM", "SENSORS_DETECTED", "SENSORS_SYNCHRONIZED", "SENSORS_CONFIGURED");
 $p = strpos ( $cvslog, "Revision" );
-$version = strtok ( substr ( $cvslog, $p + strlen ( "Revision" ), 20 ), " " );
+$GLOBALS['version'] = strtok ( substr ( $cvslog, $p + strlen ( "Revision" ), 20 ), " " );
 // echo "<pre>";
 // echo $version;
 // echo "</pre>";
 // $version="1.0";
 $thisScript = $_SERVER ['argv'] [0];
-$numBackups = 5;
-$parseditPath = "/parsedit.php";
-$embedImageScale = 0.15;
-$twoColumns = false;
+$GLOBALS['numBackups'] = 5;
+$GLOBALS['parseditPath'] = "/parsedit.php";
+$GLOBALS['embedImageScale'] = 0.15;
+$GLOBALS['twoColumns'] = false;
 $logFilePath = "/var/log/autocampars.log";
 $GLOBALS['sysfs_detect_sensors'] = '/sys/devices/soc0/elphel393-detect_sensors@0'; // /sensor00
 $GLOBALS['sysfs_frame_seq'] =      '/sys/devices/soc0/elphel393-framepars@0/this_frame'; //[0..3] 0 (write <16 will reset the hardware sequencer)
@@ -246,30 +249,7 @@ $GLOBALS['configs'] = array();
 
 log_open();
 
-/*
- $FS = fopen ( '/var/volatile/state/APPLICATION', 'w' );
- fprintf ( $FS, "%s", strtoupper ( ( string ) $xml->app ) );
- fclose ( $FS );
 
-if (file_exists ( $sensor_state_file ))
-	$sensor_board = parse_ini_file ( $sensor_state_file );
-else
-	$sensor_board = array (
-			"ctype" => "NONE" 
-	);
-if ($sensor_board ['ctype'] == 'NONE') {
-	echo "No board is detected on the sensor port, exiting\n";
-	exit ( 1 );
-}
-
-   $config_file=fopen ($config_file_path,"w+");
-   foreach ($config as $key=>$value) fwrite($config_file,$key.'='.$value."\n");
-    fclose($config_file);
-  }
-write_php_ini($array, $file)
-$GLOBALS['STATES']=array("BOOT","POWERED", "BITSTREAM", "SENSORS_DETECTED", "SENSORS_SYNCHRONIZED", "SENSORS_CONFIGURED");
-
- */
 get_application_mode(); // initializes state file (first time slow reading 10389
 $GLOBALS['camera_state'] = $GLOBALS['camera_state_arr']['state'];
 if (! in_array ( $camera_state, $GLOBALS['STATES'] )) {
@@ -286,14 +266,14 @@ if (($_GET ['load'] != '') && ($GLOBALS['sensor_port'] >=0) && ($GLOBALS['camera
 	$load_filename = $_GET ['load'];
 	if (is_file ( $load_filename )) {
 		// load file
-		$GLOBALS['config'][$GLOBALS['sensor_port']] = parseConfig ( $load_filename );
+		$GLOBALS['configs'][$GLOBALS['sensor_port']] = parseConfig ( $load_filename );
 		// / skip revision check
 		// / and simulate loading of the page '0' with GET request
 		$_GET ['ignore-revision'] = 'true';
 		// and apply page '0'
 		$groupMask = 0;
-		for($i = 0; $i < count ( $config ['groupNames'] ); $i ++) {
-			$name = $config ['groupNames'] [$i];
+		for($i = 0; $i < count ( $GLOBALS['configs'][$GLOBALS['sensor_port']]['groupNames'] ); $i ++) {
+			$name = $GLOBALS['configs'][$GLOBALS['sensor_port']]['groupNames'] [$i];
 			$shift = - 1;
 			// echo $name."\n";
 			if ($name != "") {
@@ -314,7 +294,7 @@ if (($_GET ['load'] != '') && ($GLOBALS['sensor_port'] >=0) && ($GLOBALS['camera
 				$groupMask |= (1 << (( integer ) $shift));
 		}
 		echo $groupMask . "\n";
-		// var_dump($config['groupNames']);
+		// var_dump($GLOBALS['configs'][$GLOBALS['sensor_port']] ['groupNames']);
 		$page = setParsFromPage ( $GLOBALS['sensor_port'], 0, $groupMask, false ); // /only init parameters?
 		exit ( 0 );
 	}
@@ -344,22 +324,25 @@ if ($sensor_board ['ctype'] == 'NONE') {
 $init = false;
 $daemon = false;
 $initPage = $GLOBALS['useDefaultPageNumber'];
-if ((array_key_exists ( 'new', $_GET )) || (array_key_exists ( '--new', $_SERVER ['argv'] ))) {
-	if (file_exists ( $configPath )) {
-		rotateConfig ( $numBackups );
+//echo "=== Checking for 'new' or '--new',  _SERVER ['argv']=".print_r( $_SERVER ['argv'],1).', $_GET='.print_r($_GET,1)."\n";
+if ((array_key_exists ( 'new', $_GET )) || (in_array ( '--new', $_SERVER ['argv'] ))) {
+//	log_msg("rotating,  _SERVER ['argv']=".print_r( $_SERVER ['argv'],1));
+	foreach ( $GLOBALS ['ports'] as $port ) {
+		log_msg ("Rotating configs for port $port");
+		if (file_exists ($GLOBALS['configPaths'][$port])) {
+			rotateConfig ($port, $GLOBALS['numBackups'] );
+		}
 	}
 }
-// $needDetection=true; /// we need sensor detection to be started before we can read 10359 eeprom and so select default parameters
 
 
-
-echo "get_eyesis_mode()->".get_eyesis_mode()."\n";
-echo "get_mt9p006_mode()->".get_mt9p006_mode()."\n";
+log_msg("get_eyesis_mode()->".get_eyesis_mode());
+log_msg("get_mt9p006_mode()->".get_mt9p006_mode());
 if (get_eyesis_mode()!=0){
-	echo "+++ eyesis\n";
+	log_msg("+++ eyesis");
 	process_eyesis();
 } else if (get_mt9p006_mode ()!=0){
-	echo "+++ mt9p006\n";
+	log_msg("+++ mt9p006");
 	process_mt9p006();
 }
 // Todo: Add a single camera with 10359?
@@ -385,33 +368,36 @@ if ($needDetection) { // sensor number is 0
 	if ($multisensor)
 		$eyesis_mode = get_application_mode (); // / will create /var/volatile/state/ *
 }
-for($port = 0; $port < 4; $port ++) {
-	if ($GLOBALS ['sensors'] [$port] [0] == 'mt9p006') {
-		if (! file_exists ($GLOBALS['configPaths'][$port])) {
-			$confFile = fopen ( $GLOBALS['configPaths'][$port], "w+" );
-			fwrite ( $confFile, createDefaultConfig ( $version, $multisensor, $eyesis_mode ) ); // use multisensor defaults if 10359 +sensors present
-			fclose ( $confFile );
-			log_msg ( "autocampars.php created a new configuration file $configPath from defaults." . ($multisensor ? (($eyesis_mode > 0) ? (' Used Eyesis mode, camera ' . $eyesis_mode) : ' Used multisensor mode.') : '') );
-			exec ( 'sync' );
-		}
-		$GLOBALS['configs'][$port] = parseConfig ( $GLOBALS['configPaths'][$port] );
-		
+foreach ( $GLOBALS ['ports'] as $port ) {
+	if (! file_exists ( $GLOBALS ['configPaths'] [$port] )) {
+		$confFile = fopen ( $GLOBALS ['configPaths'] [$port], "w+" );
+		fwrite ( $confFile, createDefaultConfig ( $GLOBALS['version'], $multisensor, $eyesis_mode ) ); // use multisensor defaults if 10359 +sensors present
+		fclose ( $confFile );
+		log_msg ( "autocampars.php created a new configuration file $configPath from defaults." . ($multisensor ? (($eyesis_mode > 0) ? (' Used Eyesis mode, camera ' . $eyesis_mode) : ' Used multisensor mode.') : '') );
+		exec ( 'sync' );
 	}
+	$GLOBALS ['configs'] [$port] = parseConfig($GLOBALS ['configPaths'] [$port] );
+	log_msg ( "autocampars.php parsed configuration file {$GLOBALS ['configPaths'] [$port]}.");
 }
-
+log_msg ( "Configuration data: ".print_r($GLOBALS ['configs'],1));
 //print_r($GLOBALS['configs'][0]); // just first, others are similar
-log_close();
-exit ( 0 );
+//log_close();
+//exit ( 0 );
 
 if ($_SERVER ['REQUEST_METHOD'] == "GET") {
-	processGet ();
+	processGet ($GLOBALS['sensor_port']);
 	exit ( 0 );
 } else if ($_SERVER ['REQUEST_METHOD'] == "POST") {
-	processPost ();
-	processGet ();
+	log_msg ( "Going to processPost ({$GLOBALS['sensor_port']}), config= " . print_r($GLOBALS ['configs'][$GLOBALS['sensor_port']],1) );
+	
+	processPost ($GLOBALS['sensor_port']);
+	processGet ($GLOBALS['sensor_port']);
 	exit ( 0 );
 } else {
-	$old_version = $config ['version'];
+	$old_versions=array();
+	foreach ( $GLOBALS ['ports'] as $port ) {
+		$old_versions[]=$GLOBALS['configs'][$port]['version'];
+	}
 	foreach ( $_SERVER ['argv'] as $param ) {
 		if (substr ( $param, 0, 6 ) == "--init") {
 			$param = substr ( $param, 7 );
@@ -425,19 +411,30 @@ if ($_SERVER ['REQUEST_METHOD'] == "GET") {
 		} else if (substr ( $param, 0, 14 ) == "--sensor_port=") { // should have port?
 			$GLOBALS['sensor_port']=intval(substr ( $param, 14, 1 ));
 		} else if ($param == '--ignore-revision') {
-			$config ['version'] = $version;
-			saveRotateConfig ( $numBackups );
+			//get_port_index($port)
+			foreach ( $GLOBALS ['ports'] as $port ) {
+				$GLOBALS['configs'][$port]['version'] = $GLOBALS['version'];
+				log_msg("processPost($port) --ignore_revision");
+				log_msg("GLOBALS['configs']=".print_r($GLOBALS['configs'],1));
+				
+				saveRotateConfig ($port, $GLOBALS['numBackups'] );
+			}
 		}
 	}
 	if (! $daemon && ! $init) {
+		$configs = print_r($GLOBALS ['configPaths'],1);
 		echo <<<USAGE
 
 Usage: {$_SERVER['argv'][0]} --init[=page_number]
-Initialise parameters using the saved ones in $configPath, page number 0<='page_number'<15)
+Initialise parameters using the saved ones in per-sensor port config files,
+page number 0<='page_number'<15)
 If page number is not specified the current default one will be used.
 
 Other functionality (parameters save/restore is provided when this script is called from the daemon,
-in that case command is read from the AUTOCAMPARS_* parameter
+in that case command is read from the AUTOCAMPARS_* parameter.
+
+Configuration files are here:
+$configs 		
 
 USAGE;
 		log_close();
@@ -445,18 +442,19 @@ USAGE;
 	}
 }
 
-log_close();
-exit(0); // for now
+//log_close();
+//exit(0); // for now
 
 
 
 
-
-if ($version != $old_version) { // issue warning if mismatch, but may continue
-	$warn = <<<WARN
-Warning! Version numbers of this script and the config file mismatch:
-Script ({$_SERVER['argv'][0]}): $version.
-Config file ($configPath): {$old_version}
+foreach ( $GLOBALS ['ports'] as $port ) {
+	$old_version = $old_versions[get_port_index($port)];
+	if ($GLOBALS['version'] != $old_version) { // issue warning if mismatch, but may continue
+		$warn = <<<WARN
+Warning! Version numbers of this script and the config file for port $port mismatch:
+Script ({$_SERVER['argv'][0]}):{$GLOBALS['version']}.
+Config file ({$GLOBALS ['configPaths'][$port]}): {$old_version}
 This may (or may not) cause errors. You have several options:
  1 - re-run this script with '--ignore-revision' - the file will have
      new revision number written
@@ -466,39 +464,48 @@ You may also provide the same parameters in the HTTP GET request, i.e.:
 http://192.168.0.9/autocampars.php?new
 
 WARN;
-	echo $warn;
-	fwrite ( $GLOBALS['logFile'], $warn );
-	// echo "version=$version\n";
-	// echo "old_version=$old_version\n";
-	// echo "config['version']=".$config['version']."\n";
-	if ($version != $config ['version'])
-		exit ( 1 ); // / abort
+		echo $warn;
+		log_msg($warn);
+		fwrite ( $GLOBALS['logFile'], $warn );
+		if ($GLOBALS['version'] != $GLOBALS['configs'][$port]['version']){
+			log_close();
+			exit ( 1 ); // / abort
+		}
+	}
 }
 if ($init) {
 	$page = processInit ( $initPage, $needDetection );
 	if ($page < 0) {
-		echo "Sensor failed to initialize, see $logFilePath for detailes\n";
+		log_msg ("Sensor failed to initialize, see $logFilePath for detailes");
 		exit ( 1 );
 	} else {
-		echo "Sensor was successfully initialized at " . date ( "F j, Y, g:i a" ) . " from $configPath page $page\n";
+		$port_list_string= implode(", ",$GLOBALS ['ports'] );
+		$page_list_string= implode(", ",$page);
+		
+		log_msg ("Sensors on ports: $port_list_string were successfully initialized at " . date ( "F j, Y, g:i a" ) . " from configuration files pages $page_list_string");
 		// / Currently - only for eyesis
-		sync2master ();
+///		sync2master ();
 	}
 	// echo "*version=$version\n";
-	// echo "*old_version=$old_version\n";
-	// echo "*config['version']=".$config['version']."\n";
-	if ($version != $old_version)
+	if ($GLOBALS['version'] != $GLOBALS['configs'][$port]['version'])
+		close_log();
 		exit ( 1 );
+		
 	exit ( 0 );
 }
 if ($daemon) {
-	processDaemon ();
+	processDaemon ($GLOBALS['sensor_port']);
 	exit ( 0 );
 }
+
+log_close();
 exit ( 0 );
 
 // ============ Functions =============
-
+function get_port_index($port){
+	for ($i = 0; $i < count($GLOBALS ['ports']); $i++) if  ( $GLOBALS ['ports'][$i] == $port ) return $i;
+	return -1;
+}
 
 function process_eyesis(){
 	echo "process_eyesis()";
@@ -510,11 +517,10 @@ function process_mt9p006(){
 	$GLOBALS['camera_state_arr']['max_latency'] =    5; // frames to manually advance
 	write_php_ini ($GLOBALS['camera_state_arr'], $GLOBALS['camera_state_path'] );
 	$sensor_code = 52;
-	echo "process_mt9p006()"; print_r($GLOBALS['sensors']);
+	log_msg("process_mt9p006()".print_r($GLOBALS['sensors'],1));
 	$GLOBALS ['ports'] = array(); // list of enabled ports
 	for ($port=0; $port < 4; $port++) if ($GLOBALS['sensors'][$port][0] == 'mt9p006') $GLOBALS ['ports'][] = $port; 
-	echo "ports:"; print_r($GLOBALS['ports']);
-	
+	log_msg("ports:".print_r($GLOBALS['ports'],1));
 	
 	switch ($GLOBALS['camera_state']){
 		/*
@@ -539,7 +545,7 @@ function process_mt9p006(){
  */
 		// single command (power+post_power)
 		case "BOOT":
-			echo "boot\n";
+			log_msg("boot");
 	        // correct sysfs sensor data
 			$sensor_mask = get_mt9p006_mode ();
 			$needupdate=0;
@@ -615,6 +621,7 @@ function process_mt9p006(){
 				$f = fopen ( $GLOBALS['sysfs_i2c_seq'].$port, 'w' );   fwrite($f,'3',1); fclose ( $f ); // reset+run (copy frame number from frame_seq)
 //				if ($GLOBALS['sensors'][$port][0] != 'mt9p006') {
 				if (!in_array($port, $GLOBALS['ports'])) {
+					log_msg("Disabling sensor port  ".$port);
 					$f = fopen ( $GLOBALS['sysfs_chn_en'].$port, 'w' );    fwrite($f,'0',1); fclose ( $f ); // disable sensor channel
 				}
 			}	
@@ -632,9 +639,9 @@ function process_mt9p006(){
 			// + Or just apply all parameters through the sequencer and apply certain number of pulses?
 			break;
 		default:
-			echo "camera_state=".$GLOBALS['camera_state'];
+			log_msg("camera_state=".$GLOBALS['camera_state']);
 	}
-	echo "ports:"; print_r($GLOBALS['ports']);
+	log_msg("ports:". print_r($GLOBALS['ports'],1));
 	
 	
 }
@@ -684,7 +691,7 @@ function log_open(){
 	$GLOBALS['logFile'] = fopen ( $GLOBALS['logFilePath'], "a" );
 }
 function log_msg($msg) {
-	echo $msg."\n";
+	if (!array_key_exists('REQUEST_METHOD',$_SERVER)) echo $msg."\n";
 	fwrite ( $GLOBALS['logFile'], $msg . " at " . date ( "F j, Y, G:i:s" ) . "\n" );
 }
 
@@ -825,7 +832,7 @@ function get_application_mode() {
 		}
 		write_php_ini ($GLOBALS['camera_state_arr'], $GLOBALS['camera_state_path'] );
 	} else {
-		echo "Parsing existing ini file...\n";
+		log_msg("Parsing existing ini file...");
 		$GLOBALS['camera_state_arr'] = parse_ini_file ( $GLOBALS['camera_state_path'] );
 	}
 	return $GLOBALS['camera_state_arr'];
@@ -849,21 +856,6 @@ function get_eyesis_mode() {
 	}
 	return 0;
 }
-
-/*
- if (!file_exists ( $camera_state_path )) {
-	$camera_state_array = array (
-			"state" => "BOOT"
-	);
-	write_php_ini ( $camera_state_array, $camera_state_path );
-}
-$GLOBALS['camera_state'] = parse_ini_file ( $camera_state_path ) ['state'];
-if (! in_array ( $camera_state, $STATES )) {
-	log_error ( "Invalid camera state:" . $camera_state . ", valid states are:\n" . print_r ( $STATES, 1 ));
-}
-
- */
-
 
 
 function detectSensor() {
@@ -897,10 +889,8 @@ function detectSensor() {
 	return true; // / Sensor started OK
 }
 
-/** Appllies to all sesnors */
+/** Appllies to all sensors */
 function processInit($initPage, $needDetection = true) {
-	global $config;
-	
 	$waitDaemons = 5.0; // / Wait for daemons to stop (when disabled) before resetting frame number.
 	                  // / They should look at thei enable bit periodically and restart if the frame is
 	                  // / the frame is not what they were expecting to be
@@ -936,9 +926,8 @@ function processInit($initPage, $needDetection = true) {
 	 * frame 11 (0xb) - normal total_pixels=0x4c920
 	 */
 }
-function processDaemon() {
-	global $config, $numBackups;
-	
+function processDaemon($port) {
+	//TODO: Make sure $port >=0 
 	$AUTOCAMPARS = elphel_get_P_arr ( $GLOBALS ['sensor_port'], array (
 			"AUTOCAMPARS_CMD" => null,
 			"AUTOCAMPARS_GROUPS" => null,
@@ -950,39 +939,49 @@ function processDaemon() {
 	$groupMask = myval ( $AUTOCAMPARS ['AUTOCAMPARS_GROUPS'] );
 	switch (( integer ) $AUTOCAMPARS ['AUTOCAMPARS_CMD']) {
 		case ELPHEL_CONST_AUTOCAMPARS_CMD_RESTORE :
-			$page = setParsFromPage ( $page, $groupMask );
+			$page = setParsFromPage ($port, $page, $groupMask );
 			// echo "ELPHEL_CONST_AUTOCAMPARS_CMD_RESTORE\n";
 			break;
 		case ELPHEL_CONST_AUTOCAMPARS_CMD_SAVE :
 			// echo "ELPHEL_CONST_AUTOCAMPARS_CMD_SAVE\n";
-			$page = readParsToPage ( $page );
-			saveRotateConfig ( $numBackups );
+			$page = readParsToPage ($port, $page );
+			log_msg("processDaemon($port) daemon: ELPHEL_CONST_AUTOCAMPARS_CMD_SAVE");
+			log_msg("GLOBALS['configs']=".print_r($GLOBALS['configs'],1));
+			saveRotateConfig ($port, $GLOBALS['numBackups'] );
 			break;
 		case ELPHEL_CONST_AUTOCAMPARS_CMD_DFLT :
 			// echo "ELPHEL_CONST_AUTOCAMPARS_CMD_DFLT\n";
 			if (($page >= 0) && ($page < $GLOBALS['useDefaultPageNumber']) && ($page != $GLOBALS['useDefaultPageNumber'])) {
-				$config ['defaultPage'] = $page;
-				saveRotateConfig ( $numBackups );
+				$GLOBALS['configs'][$port]['defaultPage'] = $page;
+				log_msg("processDaemon($port) daemon: ELPHEL_CONST_AUTOCAMPARS_CMD_DFLT");
+				log_msg("GLOBALS['configs']=".print_r($GLOBALS['configs'],1));
+				saveRotateConfig ($port, $GLOBALS['numBackups'] );
 			}
 			break;
 		case ELPHEL_CONST_AUTOCAMPARS_CMD_SAVEDFLT :
 			// echo "ELPHEL_CONST_AUTOCAMPARS_CMD_SAVEDFLT\n";
-			$page = readParsToPage ( $page );
-			$config ['defaultPage'] = $page;
-			saveRotateConfig ( $numBackups );
+			$page = readParsToPage ($port, $page );
+			$GLOBALS['configs'][$port] ['defaultPage'] = $page;
+			log_msg("processDaemon($port) daemon: ELPHEL_CONST_AUTOCAMPARS_CMD_SAVEDFLT");
+			log_msg("GLOBALS['configs']=".print_r($GLOBALS['configs'],1));
+			saveRotateConfig ($port, $GLOBALS['numBackups'] );
 			break;
+/*
+ * Disabled in NC393, as init is about all ports and daemon - single camera port			
 		case ELPHEL_CONST_AUTOCAMPARS_CMD_INIT :
 			// echo "ELPHEL_CONST_AUTOCAMPARS_CMD_INIT\n";
 			$pages = processInit ( $page, true ); // needs sensor reset/detection
 			                                    // /NOTE: If $page<0 here - sensor failed to initialize, if this script was called from the daemon - it will never restart on it's own. Log record is made
 			break;
+*/			
 		default :
 			echo $_SERVER ['argv'] [0] . ": Unknown command=" . $AUTOCAMPARS ['AUTOCAMPARS_CMD'];
 	}
 	// print_r($config);
 }
-function processPost() {
-	global $config;
+function processPost($port) {
+	log_msg("processPost($port)");
+	log_msg("GLOBALS['configs']=".print_r($GLOBALS['configs'],1));
 	// /Updating comments?
 	$needle = "update_comment_";
 	foreach ( $_POST as $key => $value )
@@ -990,25 +989,32 @@ function processPost() {
 			$page = substr ( $key, strlen ( $needle ) );
 			$comment = $_POST ['comment_' . $page];
 			// echo "updating comment for page $page, it will be $comment\n";
-			$config ['paramSets'] [$page] ['comment'] = $comment;
-			saveRotateConfig ( $numBackups );
-			processGet ();
+			$GLOBALS['configs'][$port]['paramSets'] [$page] ['comment'] = $comment;
+			log_msg("processPost($port) - updating comment");
+			log_msg("GLOBALS['configs']=".print_r($GLOBALS['configs'],1));
+				
+			saveRotateConfig ($port, $GLOBALS['numBackups'] );
+			processGet ($port);
 			exit ( 0 );
 		}
 	if (array_key_exists ( 'update_default', $_POST )) {
-		$config ['defaultPage'] = $_POST ['default_page'];
-		saveRotateConfig ( $numBackups );
-		processGet ();
+		$GLOBALS['configs'] ['defaultPage'] = $_POST ['default_page'];
+		log_msg("processPost($port) - updating default");
+		log_msg("GLOBALS['configs']=".print_r($GLOBALS['configs'],1));
+		saveRotateConfig ($port, $GLOBALS['numBackups'] );
+		processGet ($port);
 		exit ( 0 );
 	}
 	$needle = "save_";
 	foreach ( $_POST as $key => $value )
 		if (substr ( $key, 0, strlen ( $needle ) ) == $needle) {
 			$page = substr ( $key, strlen ( $needle ) );
-			$page = readParsToPage ( $page );
-			$config ['defaultPage'] = $page;
-			saveRotateConfig ( $numBackups );
-			processGet ();
+			$page = readParsToPage ($port,  $page );
+			$GLOBALS['configs'] ['defaultPage'] = $page;
+			log_msg("processPost($port) - save_");
+			log_msg("GLOBALS['configs']=".print_r($GLOBALS['configs'],1));
+			saveRotateConfig ($port, $GLOBALS['numBackups'] );
+			processGet ($port);
 			exit ( 0 );
 		}
 	$needle = "restore_";
@@ -1021,8 +1027,8 @@ function processPost() {
 				if (substr ( $key, 0, strlen ( $needle ) ) == $needle) {
 					$groupMask |= (1 << (( integer ) substr ( $key, strlen ( $needle ) )));
 				}
-			$page = setParsFromPage ( $page, $groupMask );
-			processGet ();
+			$page = setParsFromPage ($port, $page, $groupMask );
+			processGet ($port);
 			exit ( 0 );
 		}
 	
@@ -1032,25 +1038,36 @@ function processPost() {
 	exit ( 0 );
 }
 // /TODO: Make the contol page aware of stuck sensor (sleep 1, then 5)? and suggest init if frame is not changing
-function processGet() {
-	global $config, $twoColumns, $configPath, $version, $sensor_port;
-	// New in NC393 - get sensor port from URL - moved to startup of the script
-	// if (array_key_exists('sensor_port',$_GET)) {
-	// $sensor_port = (int) $_GET['sensor_port'];
-	// }
-	if (array_key_exists ( 'ignore-revision', $_GET ) && ($version != $config ['version'])) {
-		$config ['version'] = $version;
-		saveRotateConfig ( $numBackups );
+function processGet($port) {
+	/** NOT YET PORTED */
+//	if ($GLOBALS['sensor_port']<0){
+	if ($port<0){
+		$warn = <<<WARN_PORT
+<center><h4>Sensor port (sensor_port) is not specified</h4></center>
+<p>Only one sensor port parameters can be edited currently. You may add
+'sensor_port=value' to the request URL to fix thgis problem.</p>
+WARN_PORT;
+		echo $warn;
+		endPage ();
+		exit ( 1 );
 	}
-	if ($version != $config ['version']) {
+	// New in NC393 - get sensor port from URL - moved to startup of the script
+	// }
+	if (array_key_exists ( 'ignore-revision', $_GET ) && ($GLOBALS['version'] != $GLOBALS['configs'][$port] ['version'])) {
+		$GLOBALS['configs'][$port]['version'] = $GLOBALS['version'];
+		log_msg("processGet($port) - processGet ignore-revision");
+		log_msg("GLOBALS['configs']=".print_r($GLOBALS['configs'],1));
+		saveRotateConfig ($port, $GLOBALS['numBackups'] );
+	}
+	if ($GLOBALS['version'] != $GLOBALS['configs'][$port]['version']) {
 		startPage ( "Warning: version numbers mismatch", "function updateLink(){}" );
 		$warn = <<<WARN
 <center><h4>Warning! Version numbers of this script and the config file mismatch:</h4></center>
-Script:  <b>$version</b>.<br/>
-Config file ($configPath): <b>{$config['version']}</b><br/>
+Script:  <b>{$GLOBALS['version']}</b>.<br/>
+Config file ({$GLOBALS['configPaths'][$port]}): <b>{$GLOBALS['configs'][$port]['version']}</b><br/>
 <ol>This may (or may not) cause errors. You have several options:
-<li> Follow <a href="?new">this link </a> and create a new config file </li>
-<li> Follow <a href="?ignore-revision">this other link </a> to ignore the warning and write a new revision number to the config file</li>
+<li> Follow <a href="?new&sensor_port={$port}">this link </a> and create a new config file </li>
+<li> Follow <a href="?ignore-revision&sensor_port={$port}">this other link </a> to ignore the warning and write a new revision number to the config file</li>
 <li> First update the version number with the link above, then manually edit/merge old and new data</li>
 </ol>
 WARN;
@@ -1059,17 +1076,17 @@ WARN;
 		exit ( 1 );
 	}
 	
-	$page_title = "Model 393 Camera Parameters save/restore";
-	startPage ( $page_title, mainJavascript () );
-	if ($twoColumns)
+	$page_title = "Model 393 Camera Parameters save/restore, sensor port {$port}";
+	startPage ( $page_title, mainJavascript ($port) );
+	if ($GLOBALS['twoColumns'])
 		printf ( "<table><tr><td style='vertical-align: top'>\n" );
-	writeGroupsTable ();
-	if ($twoColumns)
+	writeGroupsTable ($port);
+	if ($GLOBALS['twoColumns'])
 		printf ( "</td><td>\n" );
 	else
 		printf ( "<br/>\n" );
-	writePagesTable ();
-	if ($twoColumns)
+	writePagesTable ($port);
+	if ($GLOBALS['twoColumns'])
 		printf ( "</td></tr></table>\n" );
 	endPage ();
 }
@@ -1103,18 +1120,17 @@ HEAD;
 function endPage() {
 	echo "\n</form></body></html>\n";
 }
-function writeGroupsTable() {
-	global $config;
+function writeGroupsTable($sensor_port) {
 	printf ( "<table border='1' style='font-family: Courier, monospace;'>\n" );
 	printf ( "<tr>" );
 	printf ( "<td><input type='button' value='&nbsp;Select&nbsp;\nAll' onclick='checkAll()' title='Select all parameter groups'/></td>\n" );
 	printf ( "<td style='text-align:center'>Bit</td><td style='text-align:center'>Name</td><td style='text-align:center'>Description</td></tr>\n" );
-	foreach ( $config ['groupBits'] as $name => $bit ) {
+	foreach ( $GLOBALS['configs'][$sensor_port]['groupBits'] as $name => $bit ) {
 		printf ( "<tr>" );
 		printf ( "<td style='text-align:center'><input type='checkbox' name='group_%d' value='1' id='id_group_%d' onclick='updateLink();'/></td>", $bit, $bit );
 		printf ( "<td style='text-align:right' >%d</td>", $bit );
 		printf ( "<td style='text-align:left' >%s</td>", $name );
-		printf ( "<td style='text-align:left' >%s</td>", $config ['groupDescriptions'] [$bit] );
+		printf ( "<td style='text-align:left' >%s</td>", $GLOBALS['configs'][$sensor_port]['groupDescriptions'] [$bit] );
 		printf ( "</tr>\n" );
 	}
 	printf ( "<tr>" );
@@ -1123,8 +1139,7 @@ function writeGroupsTable() {
 	printf ( "<label style='border: 0px solid #000;' for='id_embed_image' title='Include image with the parameter edit window'>&nbsp;&nbsp;<input type='checkbox' name='embed' value='1' id='id_embed_image' onclick='updateLink();' checked/>Include image</label></td></tr>\n" );
 	printf ( "</table>\n" );
 }
-function writePagesTable() {
-	global $config;
+function writePagesTable($sensor_port) {
 	printf ( "<table border='1' style='font-family: Courier, monospace;'>\n" );
 	printf ( "<tr>" );
 	printf ( "<td style='text-align:center'>Page</td>" );
@@ -1140,24 +1155,24 @@ function writePagesTable() {
 		printf ( "<tr>" );
 		printf ( "<td style='text-align:right'>%d</td>", $i );
 		
-		if (array_key_exists ( $i, $config ['paramSets'] )) {
-			printf ( "<td style='text-align:center'><input type='radio' name='default_page' value='%d' id='id_default_page_%d' %s" . " title='Select config file page %d as default (boot up) page' /></td>", $i, $i, ($i == $config ['defaultPage']) ? "checked" : "", $i );
+		if (array_key_exists ( $i, $GLOBALS['configs'][$sensor_port]['paramSets'] )) {
+			printf ( "<td style='text-align:center'><input type='radio' name='default_page' value='%d' id='id_default_page_%d' %s" . " title='Select config file page %d as default (boot up) page' /></td>", $i, $i, ($i == $GLOBALS['configs'][$sensor_port]['defaultPage']) ? "checked" : "", $i );
 		} else {
 			printf ( "<td>&nbsp;</td>" );
 		}
 		if ($i == $GLOBALS['protectedPage']) {
 			printf ( "<td>&nbsp;</td>" );
 		} else {
-			printf ( "<td style='text-align:center'><input type='submit' name='save_%d' value='%s' id='id_save_page_%d' title='Save current parameters to the config file as page %d'/></td>", $i, array_key_exists ( $i, $config ['paramSets'] ) ? "Overwrite" : "Save", $i, $i );
+			printf ( "<td style='text-align:center'><input type='submit' name='save_%d' value='%s' id='id_save_page_%d' title='Save current parameters to the config file as page %d'/></td>", $i, array_key_exists ( $i, $GLOBALS['configs'][$sensor_port]['paramSets'] ) ? "Overwrite" : "Save", $i, $i );
 		}
-		if (array_key_exists ( $i, $config ['paramSets'] )) {
+		if (array_key_exists ( $i, $GLOBALS['configs'][$sensor_port]['paramSets'] )) {
 			printf ( "<td style='text-align:center'><input type='submit' name='restore_%d' value='Restore' id='id_restore_page_%d' title='Restore parameters from the config file page %d'/></td>", $i, $i, $i );
-			printf ( "<td style='text-align:left'>%s</td>", $config ['paramSets'] [$i] ['timestamp'] ? date ( "F j, Y, g:i a", $config ['paramSets'] [$i] ['timestamp'] ) : "&nbsp;" );
+			printf ( "<td style='text-align:left'>%s</td>", $GLOBALS['configs'][$sensor_port]['paramSets'] [$i] ['timestamp'] ? date ( "F j, Y, g:i a", $GLOBALS['configs'][$sensor_port]['paramSets'] [$i] ['timestamp'] ) : "&nbsp;" );
 			printf ( "<td>" );
 			if ($i == $GLOBALS['protectedPage'])
-				printf ( "%s&nbsp;", $config ['paramSets'] [$i] ['comment'] );
+				printf ( "%s&nbsp;", $GLOBALS['configs'][$sensor_port]['paramSets'] [$i] ['comment'] );
 			else {
-				printf ( "<input type='text'   name='comment_%d' size='40' value='%s' id='id_comment_%d' style='text-align:left'/>", $i, $config ['paramSets'] [$i] ['comment'], $i );
+				printf ( "<input type='text'   name='comment_%d' size='40' value='%s' id='id_comment_%d' style='text-align:left'/>", $i, $GLOBALS['configs'][$sensor_port]['paramSets'] [$i] ['comment'], $i );
 				printf ( "<input type='submit' name='update_comment_%d' value='Update' id='id_update_comment_%d' title='Update comment in the config file'/>", $i, $i );
 			}
 			
@@ -1169,19 +1184,18 @@ function writePagesTable() {
 	}
 	printf ( "</table>\n" );
 }
-function mainJavascript() {
-	global $config, $parseditPath, $embedImageScale;
+function mainJavascript($sensor_port) {
 	$checkboxNumbers = "";
-	foreach ( $config ['groupBits'] as $name => $bit ) {
+	foreach ( $GLOBALS['configs'][$sensor_port]['groupBits'] as $name => $bit ) {
 		$checkboxNumbers .= $bit . ",";
 	}
 	$checkboxNumbers = rtrim ( $checkboxNumbers, "," );
 	$groupNames = "";
 	for($i = 0; $i < 32; $i ++)
-		$groupNames .= '"' . $config ['groupNames'] [$i] . '",';
+		$groupNames .= '"' . $GLOBALS['configs'][$sensor_port]['groupNames'] [$i] . '",';
 	$groupNames = rtrim ( $groupNames, "," );
 	$groupList = "{";
-	foreach ( $config ['groups'] as $name => $value ) {
+	foreach ( $GLOBALS['configs'][$sensor_port]['groups'] as $name => $value ) {
 		if (($name != 'comment') && ($name != 'timestamp')) // / Fixing bug for the group "init"
 			$groupList .= $name . ":" . $value . ",";
 	}
@@ -1225,8 +1239,8 @@ function updateLink() {
     if (groups[i] & mask) selectedPars[selectedPars.length]=i;
   }
 //  alert (selectedPars.toString());
-  document.getElementById('id_editLink').href="$parseditPath?"+
-  ((document.getElementById('id_embed_image').checked)?"embed=$embedImageScale&":"")+
+  document.getElementById('id_editLink').href="{$GLOBALS['parseditPath']}?sensor_port={$sensor_port}&"+
+  ((document.getElementById('id_embed_image').checked)?"embed={$GLOBALS['embedImageScale']}&":"")+
   "title=Parameters+for+groups:+"+selectedGroups;
   for (i in selectedPars) {
     document.getElementById('id_editLink').href+="&"+selectedPars[i];
@@ -1266,7 +1280,7 @@ function setParsFromPage($sensor_port, $page, $mask, $initmode = false) {
 	// / AS there is a hardware limit of 64 parameters/frame in the sequencers (64 for the i2c, 64 - for the FPGA registers)
 	// For that it is possible to use ASAP mode - driver will wait for the i2c command to be sent 
 	
-	
+	log_msg("setParsFromPage($sensor_port, $page, $mask, $initmode)");
 	if ($initmode) {
 //$GLOBALS['configs']
 		// New way (for nc393)
@@ -1277,9 +1291,9 @@ function setParsFromPage($sensor_port, $page, $mask, $initmode = false) {
 				$page = $GLOBALS ['configs'] [$port] ['defaultPage'];
 			}
 			$parToSet = array ();
-			foreach ( $config ['groups'] as $par => $parMask ) {
-				if (($mask & $parMask) && array_key_exists ( $par, $config ['paramSets'] [$page] ) && (! $config ['parTypes'] [$par])) // / not 'text'
-					$parToSet [$par] = myval ( $config ['paramSets'] [$page] [$par] );
+			foreach ( $GLOBALS ['configs'] [$port] ['groups'] as $par => $parMask ) {
+				if (($mask & $parMask) && array_key_exists ( $par, $GLOBALS ['configs'] [$port] ['paramSets'] [$page] ) && (! $GLOBALS ['configs'] [$port] ['parTypes'] [$par])) // / not 'text'
+					$parToSet [$par] = myval ( $GLOBALS ['configs'] [$port] ['paramSets'] [$page] [$par] );
 			}
 			// /NOTE: Important ; add gamma tables if parameters modified involve setting/chnaging them
 			addGammas ( $parToSet );
@@ -1288,8 +1302,11 @@ function setParsFromPage($sensor_port, $page, $mask, $initmode = false) {
 			// Separate $delayed_par_names from other values,
 			foreach ( $parToSet as $key => $value ) {
 				if (in_array ( $key, $delayed_par_names )) {
+					echo $key." is in ".print_r($delayed_par_names)."\n";
 					$delayed_params [$key] = $value;
-					unset ( $delayed_params [$key] );
+					unset ( $parToSet [$key] );
+				} else{
+					echo " ".$key." ";
 				}
 			}
 			// Similar things for nc353
@@ -1346,7 +1363,7 @@ function setParsFromPage($sensor_port, $page, $mask, $initmode = false) {
 			}
 			$frame_to_set = elphel_get_frame ( $GLOBALS ['master_port'] ) + ELPHEL_CONST_FRAME_DEAFAULT_AHEAD;
 			// If it was called from already running
-			if (elphel_get_P_value ( $port, COMPRESSOR_RUN ) || elphel_get_P_value ( $port, DAEMON_EN )) {
+			if (elphel_get_P_value ( $port, ELPHEL_COMPRESSOR_RUN ) || elphel_get_P_value ( $port, ELPHEL_DAEMON_EN )) {
 				// Should we stop sequencers?
 				elphel_set_P_arr ( $port, array (
 						'COMPRESSOR_RUN' => 0,
@@ -1354,16 +1371,17 @@ function setParsFromPage($sensor_port, $page, $mask, $initmode = false) {
 				), $frame_to_set, ELPHEL_CONST_FRAMEPAIR_FORCE_NEWPROC ); // was -1 ("this frame")
 				$frame_to_set += 2;
 			}
+			log_msg ( "port ".$port. " setting @".$frame_to_set.": " .print_r($parToSet) );
 			elphel_set_P_arr ( $port, $parToSet, $frame_to_set, ELPHEL_CONST_FRAMEPAIR_FORCE_NEWPROC );
 			$frame_to_set += 2;
+			log_msg ( "port ".$port. " setting @".$frame_to_set." COMPRESSOR_RUN= " . $compressor_run ['COMPRESSOR_RUN']  );
 			elphel_set_P_arr ( $port, $compressor_run, $frame_to_set, ELPHEL_CONST_FRAMEPAIR_FORCE_NEWPROC );
-			log_msg ( "setting COMPRESSOR_RUN=" . $compressor_run ['COMPRESSOR_RUN'] );
 			$frame_to_set += 4; // /Adjust? So streamer will have at least 2 good frames in buffer?
+			log_msg ( "port ".$port. " setting @".$frame_to_set." DAEMON_EN= " . print_r ( $daemon_en, 1 ) );
 			elphel_set_P_arr ( $port, $daemon_en, $frame_to_set, ELPHEL_CONST_FRAMEPAIR_FORCE_NEWPROC );
-			log_msg ( "setting DAEMON_EN= " . print_r ( $daemon_en, 1 ) );
 			$frame_to_set += 1;
+			log_msg ( "port ".$port. " setting @".$frame_to_set." delayed trigger parameters= " . print_r ( $delayed_params, 1 ) );
 			elphel_set_P_arr ( $port, $delayed_params, $frame_to_set, ELPHEL_CONST_FRAMEPAIR_FORCE_NEWPROC );
-			log_msg ( "setting delayed trigger parameters= " . print_r ( $delayed_params, 1 ) );
 			$pages[]=$page;
 		}
 		$numSkip=$frame_to_set-elphel_get_frame($GLOBALS['master_port'])+1; // +1 - to be safe?
@@ -1379,32 +1397,50 @@ function setParsFromPage($sensor_port, $page, $mask, $initmode = false) {
 			$page = $GLOBALS['configs'][$sensor_port]['defaultPage'];
 		}
 		$parToSet = array ();
-		foreach ( $config ['groups'] as $par => $parMask ) {
-			if (($mask & $parMask) && array_key_exists ( $par, $config ['paramSets'] [$page] ) && (! $config ['parTypes'] [$par])) // / not 'text'
-				$parToSet [$par] = myval ( $config ['paramSets'] [$page] [$par] );
+		log_msg("page = $page");
+		foreach ( $GLOBALS ['configs'][$sensor_port] ['groups'] as $par => $parMask ) {
+			if (($mask & $parMask) &&
+					array_key_exists ( $par, $GLOBALS ['configs'] [$sensor_port] ['paramSets'] [$page] ) &&
+					(! $GLOBALS ['configs'] [$sensor_port] ['parTypes'] [$par])) // / not 'text'
+				$parToSet [$par] = myval ( $GLOBALS ['configs'] [$sensor_port] ['paramSets'] [$page] [$par] );
+			log_msg(print_r($parToSet,1));
 		}
 		// /NOTE: Important ; add gamma tables if parameters modified involve setting/chnaging them
 		addGammas ( $parToSet );
-		
+		log_msg('$parToSet == '. print_r($parToSet,1));
 		elphel_set_P_arr  ( $sensor_port, $parToSet );
 	}
 	return $page;
 }
 
+/*
+   global $config, $useDefaultPageNumber;
+  if ($page==$useDefaultPageNumber) $page=$config['defaultPage'];
+  $parToSet=array();
+  foreach ($config['groups'] as $par=>$parMask) {
+    if (($mask & $parMask) &&
+         array_key_exists($par, $config['paramSets'][$page]) &&
+         (!$config['parTypes'][$par])) /// not 'text'
+                $parToSet[$par]=myval($config['paramSets'][$page][$par]);
+  }
+///NOTE: Important ; add gamma tables if parameters modified involve setting/chnaging them
+  addGammas($parToSet);
+ */
+
 function readParsToPage($sensor_port, $page) {
-	global $config;
+	log_msg("readParsToPage($sensor_port, $page)");
+	log_msg("GLOBALS['configs']=".print_r($GLOBALS['configs'],1));
+	
 	if (($page == $GLOBALS['protectedPage']) || ($page < 0) || ($page > $GLOBALS['useDefaultPageNumber']))
 		return - 1;
 	if ($page == $GLOBALS['useDefaultPageNumber'])
-		$page = $config ['nextPage']; // / 0 is write protected
+		$page = $GLOBALS ['configs'] [$sensor_port] ['nextPage']; // / 0 is write protected
 	if ($page == $GLOBALS['protectedPage'])
 		$page = findNextPage ( $page );
-		// echo "\nbefore:";print_r($config);
-	$config ['paramSets'] [$page] = elphel_get_P_arr ( $sensor_port, $config ['groups'] ); // / 'text' parameters will be just ignored
-	$config ['paramSets'] [$page] ['comment'] = "Saved on " . date ( "F j, Y, g:i a" );
-	$config ['paramSets'] [$page] ['timestamp'] = time ();
-	// echo "\nafter:";print_r($config);
-	$config ['nextPage'] = findNextPage ( $page );
+	$GLOBALS ['configs'] [$sensor_port] ['paramSets'] [$page] = elphel_get_P_arr ( $sensor_port, $GLOBALS ['configs'] [$sensor_port] ['groups'] ); // / 'text' parameters will be just ignored
+	$GLOBALS ['configs'] [$sensor_port] ['paramSets'] [$page] ['comment'] = "Saved on " . date ( "F j, Y, g:i a" );
+	$GLOBALS ['configs'] [$sensor_port] ['paramSets'] [$page] ['timestamp'] = time ();
+	$GLOBALS ['configs'] [$sensor_port] ['nextPage'] = findNextPage ( $page );
 	elphel_set_P_arr ( $sensor_port, array (
 			"AUTOCAMPARS_PAGE" => $page + 0 
 	) ); // / will set some (3?) frames ahead so not yet available until waited enough
@@ -1414,33 +1450,34 @@ function readParsToPage($sensor_port, $page) {
 }
 // elphel_parse_P_name
 function saveRotateConfig($sensor_port, $numBackups) {
-//	global $config, $configPath, $backupConfigPath;
+	log_msg("saveRotateConfig($sensor_port, $numBackups)");
+	log_msg("GLOBALS['configs']=".print_r($GLOBALS['configs'],1));
+	
 	rotateConfig ($sensor_port, $numBackups );
 	
-	$confFile = fopen ( $GLOBALS['configPath'][$sensor_port], "w+" );
-	fwrite ( $confFile, encodeConfig ( $GLOBALS['config'][$sensor_port] ) );
+	$confFile = fopen ( $GLOBALS['configPaths'][$sensor_port], "w+" );
+	fwrite ( $confFile, encodeConfig ( $GLOBALS['configs'][$sensor_port] ) );
 	fclose ( $confFile );
 	exec ( 'sync' );
 }
 function rotateConfig($sensor_port,$numBackups) {
-//	global $config, $configPath, $backupConfigPath;
+	log_msg("rotateConfig($sensor_port,$numBackups)");
 	if (file_exists ( backupName ($sensor_port, $numBackups ) ))
 		unlink ( backupName ($sensor_port, $numBackups ) );
 	for($i = $numBackups - 1; $i > 0; $i --)
 		if (file_exists ( backupName ($sensor_port, $i - 1 ) ))
 			rename ( backupName ($sensor_port, $i - 1 ), backupName ($sensor_port, $i ) );
-	if (($numBackups > 0) && (file_exists ( $GLOBALS['configPath'][$sensor_port])))
-		rename ( $GLOBALS['configPath'][$sensor_port], backupName ($sensor_port, 0 ) );
+	log_msg("cheking path ".$GLOBALS['configPaths'][$sensor_port].": ".file_exists ( $GLOBALS['configPaths'][$sensor_port]));
+	if (($numBackups > 0) && (file_exists ( $GLOBALS['configPaths'][$sensor_port])))
+		rename ( $GLOBALS['configPaths'][$sensor_port], backupName ($sensor_port, 0 ) );
 }
 function backupName($sensor_port, $num) {
-//	global $backupConfigPath;
 	if ($num > 0)
-		return $GLOBALS['backupConfigPath'][$sensor_port] . $num;
+		return $GLOBALS['backupConfigPaths'][$sensor_port] . $num;
 	else
-		return $GLOBALS['backupConfigPath'][$sensor_port];
+		return $GLOBALS['backupConfigPaths'][$sensor_port];
 }
 function findNextPage($page) {
-	global $config;
 	$page ++;
 	while ( ($page == $GLOBALS['protectedPage']) || ($page == $GLOBALS['useDefaultPageNumber']) ) {
 		$page ++;
@@ -1494,8 +1531,9 @@ function parseConfig($filename) {
 	}
 	return $config;
 }
+
 function encodeConfig($config) {
-	// echo "encodeConfig()";print_r($config);
+	log_msg("encodeConfig(): sensor_port=".$GLOBALS['sensor_port'].", config=".print_r($config,1));
 	$xml = "<?xml version=\"1.0\" standalone=\"yes\"?>\n<!-- This file is generated by " . $_SERVER ['argv'] [0] . " -->\n";
 	$xml .= "  <autocampars>\n";
 	$xml .= "<!-- File version -->\n";
@@ -1546,6 +1584,7 @@ function encodeConfig($config) {
 	$xml .= "  </autocampars>\n";
 	return $xml;
 }
+
 function myval($s) {
 	$s = trim ( $s, "\" " );
 	if (strtoupper ( substr ( $s, 0, 2 ) ) == "0X")
@@ -1623,9 +1662,9 @@ function calculateDefaultPhases() {
 
 //http://stackoverflow.com/questions/5695145/how-to-read-and-write-to-an-ini-file-with-php
 function write_php_ini($array, $file) {
-	echo "write_php_ini\n";
+//	echo "write_php_ini\n";
 //	var_dump($array);
-	print_r($array);
+//	print_r($array);
 	$res = array ();
 	foreach ( $array as $key => $val ) {
 		if (is_array ( $val )) {
@@ -1664,14 +1703,13 @@ function createDefaultConfig($version, $multisensor = false, $eyesis_mode = 0) {
 	$thisScript = $_SERVER ['argv'] [0];
 	// /overwrites
 	$TRIG_MASTER = 0; // modify for bottom 2 for eyesis? or rely on auto?
-	$TRIG = $multisensor ? 4 : 0;
-	$TRIG_CONDITION = $eyesis_mode ? 0x20000 : 0;
-	$TRIG_OUT = $eyesis_mode ? 0x80000 : 0;
-	$TRIG_PERIOD = $eyesis_mode ? 38400000 : 0;
+	$TRIG = 4; // $multisensor ? 4 : 0;
+	$TRIG_PERIOD =    $eyesis_mode ?25000000 : 10000000; // 10 fps
+	$TRIG_CONDITION = $eyesis_mode ? 0x59555 : 0x55555;
+	$TRIG_OUT =       $eyesis_mode ? 0x65555 : 0x55555;
 	$MULTI_MODE = $multisensor ? 1 : 0;
 	$GAMMA_CORR = $eyesis_mode ? 0x09320400 : 0x0a390400;
 	$SATURATION = $eyesis_mode ? 220 : 200; // / should be changed with gamma (lower the gamma - higher the required saturation)
-	
 	$WB_EN = $eyesis_mode ? 0 : 1;
 	$GAINR = $eyesis_mode ? 0x2d26e : 0x20000;
 	$GAING = $eyesis_mode ? 0x20000 : 0x20000;
@@ -1696,7 +1734,7 @@ function createDefaultConfig($version, $multisensor = false, $eyesis_mode = 0) {
 	$HISTWND_RHEIGHT = 0x8000;
 	$HISTWND_RLEFT = 0x8000;
 	$HISTWND_RTOP = 0x8000;
-	$COLOR = 1;
+	$COLOR = 0;
 	
 	switch ($eyesis_mode) {
 		case 1 :
@@ -1766,6 +1804,38 @@ function createDefaultConfig($version, $multisensor = false, $eyesis_mode = 0) {
 			$COLOR = 5;
 			break;
 	}
+/*
+							elphel_set_P_value ( $sensor_port, ELPHEL_MAXAHEAD, 2, 0, 8 ); // / When servicing interrupts, try programming up to 2 frames ahead of due time)
+// 2016/09/09: Seems that with defualt 63, even on a single-channel autoexposure+ moving WOI breaks acquisition)
+// With increased delay - seems OK
+// Resizing - still breaks, probably for different reason
+							elphel_set_P_value ( $sensor_port, ELPHEL_MEMSENSOR_DLY, 1024, $frame + 2, ELPHEL_CONST_FRAMEPAIR_FORCE_NEWPROC );
+								
+							elphel_set_P_value ( $sensor_port, ELPHEL_FPGA_XTRA, 1000, $frame + 3, ELPHEL_CONST_FRAMEPAIR_FORCE_NEWPROC ); // /compressor needs extra 1000 cycles to compress a frame (estimate)
+//							elphel_set_P_value ( $sensor_port, ELPHEL_EXTERN_TIMESTAMP, 1, $frame + 3, ELPHEL_CONST_FRAMEPAIR_FORCE_NEWPROC ); // / only used with async trigger
+							                                                                                                                   
+							// / good (latency should be changed, but for now that will make a correct initialization - maybe obsolete)
+							
+							elphel_set_P_value ( $sensor_port, ELPHEL_BITS, 8, $frame + 3, ELPHEL_CONST_FRAMEPAIR_FORCE_NEWPROC );
+							elphel_set_P_value ( $sensor_port, ELPHEL_QUALITY, 80, $frame + 4, ELPHEL_CONST_FRAMEPAIR_FORCE_NEWPROC );
+							elphel_set_P_value ( $sensor_port, ELPHEL_COLOR, ELPHEL_CONST_COLORMODE_COLOR, $frame + 4, ELPHEL_CONST_FRAMEPAIR_FORCE_NEWPROC );
+							elphel_set_P_value ( $sensor_port, ELPHEL_COLOR_SATURATION_BLUE, 200, $frame + 4, ELPHEL_CONST_FRAMEPAIR_FORCE_NEWPROC );
+							elphel_set_P_value ( $sensor_port, ELPHEL_COLOR_SATURATION_RED, 200, $frame + 4, ELPHEL_CONST_FRAMEPAIR_FORCE_NEWPROC );
+							elphel_set_P_value ( $sensor_port, ELPHEL_BAYER, 0, $frame + 4, ELPHEL_CONST_FRAMEPAIR_FORCE_NEWPROC );
+							elphel_set_P_value ( $sensor_port, ELPHEL_GAING, 0x10000, $frame + 4, ELPHEL_CONST_FRAMEPAIR_FORCE_NEWPROC );
+							elphel_set_P_value ( $sensor_port, ELPHEL_GAINGB, 0x10000, $frame + 4, ELPHEL_CONST_FRAMEPAIR_FORCE_NEWPROC );
+							elphel_set_P_value ( $sensor_port, ELPHEL_GAINR, 0x10000, $frame + 4, ELPHEL_CONST_FRAMEPAIR_FORCE_NEWPROC );
+							elphel_set_P_value ( $sensor_port, ELPHEL_GAINB, 0x10000, $frame + 4, ELPHEL_CONST_FRAMEPAIR_FORCE_NEWPROC );
+							elphel_set_P_value ( $sensor_port, ELPHEL_VIGNET_C, 0x8000, $frame + 4, ELPHEL_CONST_FRAMEPAIR_FORCE_NEWPROC );
+							elphel_set_P_value ( $sensor_port, ELPHEL_VIGNET_SHL, 1, $frame + 4, ELPHEL_CONST_FRAMEPAIR_FORCE_NEWPROC );
+							elphel_set_P_value ( $sensor_port, ELPHEL_SENSOR_RUN, 2, $frame + 4, ELPHEL_CONST_FRAMEPAIR_FORCE_NEWPROC );
+							elphel_set_P_value ( $sensor_port, ELPHEL_COMPRESSOR_RUN, 2, $frame + 4, ELPHEL_CONST_FRAMEPAIR_FORCE_NEWPROC ); // / run compressor
+
+ */	
+	
+	
+	
+	
 	// will create $SENSOR_PHASE=...;MULTI_PHASE1=...;MULTI_PHASE3=...;)
 	extract ( calculateDefaultPhases () ); // read sensor phases from memory or calculate from the eeproms for newer devices
 	// / Now select window orientations based on eyesis_mode
@@ -1838,8 +1908,8 @@ function createDefaultConfig($version, $multisensor = false, $eyesis_mode = 0) {
      <FPGATEST>"Replace the image from the sensor with the internally generated test pattern. Currently only two values are supported: 0 - npormal image, 1 horizontal gradient.</FPGATEST>
      <TESTSENSOR>"Sensor internal test modes: 0x10000 - enable, lower bits - test mode value"</TESTSENSOR>
      <COLOR>"Compressor modes (only modes 0..2 can be processed with standard libjpeg):`
-               0 - mono6, monochrome (color YCbCr 4:2:0 with zeroed out color componets)`
-               1 - color, YCbCr 4:2:0, 3x3 pixels`
+               0 - color, YCbCr 4:2:0, 3x3 pixels`
+               1 - mono6, monochrome (color YCbCr 4:2:0 with zeroed out color componets)`
                2 - jp46 - original jp4, encoded as 4:2:0 with zeroed color components`
                3 - jp46dc, modified jp46 so each color component uses individual DC diffenential encoding`
                4 - reserved for color with 5x5 conversion (not yet implemented)`
@@ -1935,6 +2005,7 @@ function createDefaultConfig($version, $multisensor = false, $eyesis_mode = 0) {
      <RFOCUS_WIDTH>"init"</RFOCUS_WIDTH>
      <RFOCUS_TOP>"init"</RFOCUS_TOP>
      <RFOCUS_HEIGHT>"init"</RFOCUS_HEIGHT>
+     <MEMSENSOR_DLY>"Delay in memsensor from frame sync (start of command processing) and SoF when it is started"</MEMSENSOR_DLY>
      <FOCUS_LEFT>"Focus WOI left margin, in pixels, inclusive (3 LSB will be zeroed as it should be multiple of 8x8 block width)"</FOCUS_LEFT>
      <FOCUS_WIDTH>"Focus WOI width (3 LSB will be zeroed as it should be multiple of 8x8 block width)"</FOCUS_WIDTH>
      <FOCUS_TOP>"focus WOI top margin, inclusive (3 LSB will be zeroed as it should be multiple of 8x8 block height)"</FOCUS_TOP>
@@ -2212,7 +2283,7 @@ function createDefaultConfig($version, $multisensor = false, $eyesis_mode = 0) {
      <DGAINB>"init,vignet"</DGAINB>
      <CORING_PAGE>"init,image"</CORING_PAGE>
      <TILES></TILES>
-     <SENSOR_PHASE>"init,unsafe,diagn"</SENSOR_PHASE>
+     <SENSOR_PHASE>"unsafe,diagn"</SENSOR_PHASE>
      <TEMPERATURE_PERIOD>"init,diagn"</TEMPERATURE_PERIOD>
      <AUTOEXP_ON>"init,autoexposure"</AUTOEXP_ON>
      <HISTWND_RWIDTH>"init,histWnd"</HISTWND_RWIDTH>
@@ -2237,6 +2308,7 @@ function createDefaultConfig($version, $multisensor = false, $eyesis_mode = 0) {
      <RFOCUS_WIDTH>"init"</RFOCUS_WIDTH>
      <RFOCUS_TOP>"init"</RFOCUS_TOP>
      <RFOCUS_HEIGHT>"init"</RFOCUS_HEIGHT>
+     <MEMSENSOR_DLY>"init"</MEMSENSOR_DLY>
      <FOCUS_LEFT></FOCUS_LEFT>
      <FOCUS_WIDTH></FOCUS_WIDTH>
      <FOCUS_TOP></FOCUS_TOP>
@@ -2253,7 +2325,7 @@ function createDefaultConfig($version, $multisensor = false, $eyesis_mode = 0) {
      <SKIP_FRAMES>"init"</SKIP_FRAMES>
      <I2C_QPERIOD>"unsafe"</I2C_QPERIOD>
      <I2C_BYTES>"unsafe"</I2C_BYTES>
-     <IRQ_SMART>"init,trigger"</IRQ_SMART>
+     <IRQ_SMART></IRQ_SMART>
      <OVERSIZE>"init"</OVERSIZE>
      <GTAB_R>"init,image,whiteBalance"</GTAB_R>
      <GTAB_G>"init,image,whiteBalance"</GTAB_G>
@@ -2328,17 +2400,17 @@ function createDefaultConfig($version, $multisensor = false, $eyesis_mode = 0) {
      <HIST_DIM_23>"init,autoexposure"</HIST_DIM_23>
      <AE_INTEGERR></AE_INTEGERR>
      <WB_INTEGERR></WB_INTEGERR>
-     <TASKLET_CTL>"init,diagn"</TASKLET_CTL>
+     <TASKLET_CTL>"diagn"</TASKLET_CTL>
      <GFOCUS_VALUE></GFOCUS_VALUE>
-     <HISTMODE_Y>"init,diagn"</HISTMODE_Y>
-     <HISTMODE_C>"init,diagn"</HISTMODE_C>
-     <SKIP_DIFF_FRAME>"init,streamer"</SKIP_DIFF_FRAME>
+     <HISTMODE_Y>"diagn"</HISTMODE_Y>
+     <HISTMODE_C>"diagn"</HISTMODE_C>
+     <SKIP_DIFF_FRAME>"streamer"</SKIP_DIFF_FRAME>
      <HIST_LAST_INDEX></HIST_LAST_INDEX>
      <HIST_Y_FRAME></HIST_Y_FRAME>
      <HIST_C_FRAME></HIST_C_FRAME>
      <DAEMON_ERR></DAEMON_ERR>
      <DAEMON_RETCODE></DAEMON_RETCODE>
-     <PROFILING_EN>"init,diagn"</PROFILING_EN>
+     <PROFILING_EN>"diagn"</PROFILING_EN>
      <STROP_MCAST_EN>"init,streamer"</STROP_MCAST_EN>
      <STROP_MCAST_IP>"init,streamer"</STROP_MCAST_IP>
      <STROP_MCAST_PORT>"init,streamer"</STROP_MCAST_PORT>
@@ -2472,6 +2544,7 @@ function createDefaultConfig($version, $multisensor = false, $eyesis_mode = 0) {
      <RFOCUS_WIDTH>0x8000</RFOCUS_WIDTH>
      <RFOCUS_TOP>0x8000</RFOCUS_TOP>
      <RFOCUS_HEIGHT>0x8000</RFOCUS_HEIGHT>
+     <MEMSENSOR_DLY>1024</MEMSENSOR_DLY>
      <FOCUS_FILTER>0</FOCUS_FILTER>
      <TRIG_CONDITION>$TRIG_CONDITION</TRIG_CONDITION>
      <TRIG_DELAY>0</TRIG_DELAY>
@@ -2480,8 +2553,8 @@ function createDefaultConfig($version, $multisensor = false, $eyesis_mode = 0) {
      <TRIG_BITLENGTH>31</TRIG_BITLENGTH>
      <EXTERN_TIMESTAMP>1</EXTERN_TIMESTAMP>
      <XMIT_TIMESTAMP>1</XMIT_TIMESTAMP>
-     <SKIP_FRAMES>0</SKIP_FRAMES>
-     <IRQ_SMART>3</IRQ_SMART>
+<!--     <SKIP_FRAMES>0</SKIP_FRAMES>
+     <IRQ_SMART>3</IRQ_SMART> -->
      <OVERSIZE>0</OVERSIZE>
      <GTAB_R>$GAMMA_CORR</GTAB_R>
      <GTAB_G>$GAMMA_CORR</GTAB_G>
@@ -2489,7 +2562,7 @@ function createDefaultConfig($version, $multisensor = false, $eyesis_mode = 0) {
      <GTAB_B>$GAMMA_CORR</GTAB_B>
      <COMPRESSOR_RUN>$COMPRESSOR_RUN</COMPRESSOR_RUN>
      <COMPMOD_BYRSH>0</COMPMOD_BYRSH>
-     <COMPMOD_TILSH>0</COMPMOD_TILSH>
+<!--     <COMPMOD_TILSH>0</COMPMOD_TILSH> -->
      <COMPMOD_DCSUB>0</COMPMOD_DCSUB>
      <SENSOR_REGS></SENSOR_REGS>
      <DAEMON_EN>0</DAEMON_EN>
@@ -2524,17 +2597,21 @@ function createDefaultConfig($version, $multisensor = false, $eyesis_mode = 0) {
      <FTP_TIMEOUT>360</FTP_TIMEOUT>
      <FTP_UPDATE>600</FTP_UPDATE>
      <DEBUG>0</DEBUG>
-     <MAXAHEAD>2</MAXAHEAD>
-     <HIST_DIM_01>0x0a000a00</HIST_DIM_01>
-     <HIST_DIM_23>0x0a000a00</HIST_DIM_23>
+     <MAXAHEAD>3</MAXAHEAD>
+     
+<!--     <HIST_DIM_01>0x0a000a00</HIST_DIM_01>
+     <HIST_DIM_23>0x0a000a00</HIST_DIM_23> -->
+     
      <AE_INTEGERR></AE_INTEGERR>
      <WB_INTEGERR></WB_INTEGERR>
      <TASKLET_CTL>0</TASKLET_CTL>
      <GFOCUS_VALUE></GFOCUS_VALUE>
-     <HISTMODE_Y>$HISTMODE_Y</HISTMODE_Y>
+     
+<!--     <HISTMODE_Y>$HISTMODE_Y</HISTMODE_Y>
      <HISTMODE_C>$HISTMODE_C</HISTMODE_C>
      <SKIP_DIFF_FRAME>4</SKIP_DIFF_FRAME>
-     <PROFILING_EN>0</PROFILING_EN>
+     <PROFILING_EN>0</PROFILING_EN> -->
+     
      <STROP_MCAST_EN>0</STROP_MCAST_EN>
      <STROP_MCAST_IP>0</STROP_MCAST_IP>
      <STROP_MCAST_PORT>20020</STROP_MCAST_PORT>
@@ -2548,10 +2625,12 @@ function createDefaultConfig($version, $multisensor = false, $eyesis_mode = 0) {
      <MULTI_FLIPH> $MULTI_FLIPH</MULTI_FLIPH>
      <MULTI_FLIPV> $MULTI_FLIPV</MULTI_FLIPV>
      <MULTI_SELECTED>$MULTI_SELECTED</MULTI_SELECTED>
-     <SENSOR_PHASE>$SENSOR_PHASE</SENSOR_PHASE>
+     
+<!--     <SENSOR_PHASE>$SENSOR_PHASE</SENSOR_PHASE>
      <MULTI_PHASE1>$MULTI_PHASE1</MULTI_PHASE1>
      <MULTI_PHASE2>$MULTI_PHASE2</MULTI_PHASE2>
-     <MULTI_PHASE3>$MULTI_PHASE3</MULTI_PHASE3>
+     <MULTI_PHASE3>$MULTI_PHASE3</MULTI_PHASE3> -->
+     		
      <TEMPERATURE01>-1</TEMPERATURE01>
      <TEMPERATURE23>-1</TEMPERATURE23>
     </set>
