@@ -1,6 +1,6 @@
 LN = ln
 PROGS      = autocampars launch_php_script
-PHPSCRIPTS = autocampars.php
+#PHPSCRIPTS = autocampars.php
 PYSCRIPTS =  autocampars.py
 WWW_PAGES = /www/pages
 SRCS       = autocampars.c launch_php_script.c
@@ -42,7 +42,12 @@ install: $(PROGS) $(PHPSCRIPTS) $(PYSCRIPTS)
 	$(INSTALL) -d $(DESTDIR)$(CONFDIR)
 	$(INSTALL) $(OWN) -m $(INSTMODE) $(PROGS) $(DESTDIR)$(BINDIR)
 	$(INSTALL) $(OWN) -m $(INSTMODE) $(PYSCRIPTS) $(DESTDIR)$(BINDIR)
-	$(INSTALL) $(OWN) -m $(INSTMODE) $(PHPSCRIPTS) $(DESTDIR)$(BINDIR)
+#	$(INSTALL) $(OWN) -m $(INSTMODE) $(PHPSCRIPTS) $(DESTDIR)$(BINDIR)
+	sed -e 's/___VERSION___/$(VERSION)/' autocampars.php >autocampars.php.tmp0
+	sed -e 's/___SRCREV___/$(SRCREV)/' autocampars.php.tmp0 >autocampars.php.tmp
+	$(INSTALL) $(OWN) -m $(INSTMODE) autocampars.php.tmp $(DESTDIR)$(BINDIR)/autocampars.php
+	rm autocampars.php.tmp0 autocampars.php.tmp
+	
 	$(LN) -sf $(BINDIR)/autocampars.py  $(DESTDIR)$(WWW_PAGES)/autocampars.py
 	$(LN) -sf $(BINDIR)/autocampars.php $(DESTDIR)$(WWW_PAGES)/autocampars.php
 
