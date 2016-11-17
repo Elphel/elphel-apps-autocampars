@@ -976,11 +976,12 @@ function processPost($port) {
 			exit ( 0 );
 		}
 	if (array_key_exists ( 'update_default', $_POST )) {
-		$GLOBALS['configs'] ['defaultPage'] = $_POST ['default_page'];
-		log_msg("processPost($port) - updating default");
+		$GLOBALS['configs'] [$port] ['defaultPage'] = $_POST ['default_page'];
+		log_msg("processPost($port) - updating default, \$GLOBALS['configs'][\$port]['defaultPage'] = ".$GLOBALS['configs'] [$port] ['defaultPage']);
 //		log_msg("GLOBALS['configs']=".print_r($GLOBALS['configs'],1));
 		saveRotateConfig ($port, $GLOBALS['numBackups'] );
 		processGet ($port);
+		log_close();
 		exit ( 0 );
 	}
 	$needle = "save_";
@@ -988,7 +989,7 @@ function processPost($port) {
 		if (substr ( $key, 0, strlen ( $needle ) ) == $needle) {
 			$page = substr ( $key, strlen ( $needle ) );
 			$page = readParsToPage ($port,  $page );
-			$GLOBALS['configs'] ['defaultPage'] = $page;
+			$GLOBALS['configs'] [$port] ['defaultPage'] = $page;
 			log_msg("processPost($port) - save_");
 //			log_msg("GLOBALS['configs']=".print_r($GLOBALS['configs'],1));
 			saveRotateConfig ($port, $GLOBALS['numBackups'] );
@@ -1293,7 +1294,10 @@ function setParsFromPage($sensor_port, $page, $mask, $initmode = false) {
 			$compressor_run = array (
 					'COMPRESSOR_RUN' => 2 
 			);
-			$daemon_en = array (
+			$sensor_run = array (
+					'SENSOR_RUN' => 2
+			);
+				$daemon_en = array (
 					'DAEMON_EN_AUTOEXPOSURE' => 1,
 					'DAEMON_EN_STREAMER' => 1,
 					'DAEMON_EN_CCAMFTP' => 0,
@@ -1301,11 +1305,15 @@ function setParsFromPage($sensor_port, $page, $mask, $initmode = false) {
 					'DAEMON_EN_TEMPERATURE' => 0 
 			);
 			
+			if (isset ( $parToSet ['SENSOR_RUN'] )) {
+				$sensor_run ['SENSOR_RUN'] = $parToSet ['SENSOR_RUN'];
+				unset ( $parToSet ['SENSOR_RUN'] );
+			}
 			if (isset ( $parToSet ['COMPRESSOR_RUN'] )) {
 				$compressor_run ['COMPRESSOR_RUN'] = $parToSet ['COMPRESSOR_RUN'];
 				unset ( $parToSet ['COMPRESSOR_RUN'] );
 			}
-			if (isset ( $parToSet ['DAEMON_EN'] )) {
+				if (isset ( $parToSet ['DAEMON_EN'] )) {
 				$daemon_en ['DAEMON_EN'] = $parToSet ['DAEMON_EN'];
 				unset ( $parToSet ['DAEMON_EN'] );
 			}
@@ -1341,18 +1349,32 @@ function setParsFromPage($sensor_port, $page, $mask, $initmode = false) {
 				if (isset ( $daemon_en ['DAEMON_EN_TEMPERATURE'] ))
 					$daemon_en ['DAEMON_EN'] |= $daemon_en ['DAEMON_EN_TEMPERATURE'] ? 32 : 0;
 			}
-			$frame_to_set = elphel_get_frame ( $GLOBALS ['master_port'] ) + ELPHEL_CONST_FRAME_DEAFAULT_AHEAD;
+			$frame_to_set = elphel_get_frame ( $GLOBALS ['master_port'] ) + 0; // ELPHEL_CONST_FRAME_DEAFAULT_AHEAD;
 			// If it was called from already running
 			if (elphel_get_P_value ( $port, ELPHEL_COMPRESSOR_RUN ) || elphel_get_P_value ( $port, ELPHEL_DAEMON_EN )) {
+				$frame_to_set += ELPHEL_CONST_FRAME_DEAFAULT_AHEAD;
 				// Should we stop sequencers?
 				elphel_set_P_arr ( $port, array (
 						'COMPRESSOR_RUN' => 0,
+						'SENSOR_RUN' => 0,
 						'DAEMON_EN' => 0 
 				), $frame_to_set, ELPHEL_CONST_FRAMEPAIR_FORCE_NEWPROC ); // was -1 ("this frame")
-				$frame_to_set += 2;
+				// advance frames, so next settings will be ASAP (sent immediate, not limited to 64?)
+				for ($i = 0; $i< ELPHEL_CONST_FRAME_DEAFAULT_AHEAD; $i++){
+					// Single trigger
+					elphel_set_P_value ( $GLOBALS['master_port'], ELPHEL_TRIG_PERIOD,  1, ELPHEL_CONST_FRAME_IMMED, ELPHEL_CONST_FRAMEPAIR_FORCE_NEWPROC);
+					usleep ($GLOBALS['camera_state_arr']['max_frame_time']); // > 1 frame, so all channels will get trigger parameters? 3 2 2 1 -> 4 3 3 2
+				}
 			}
+			log_msg ( "port ".$port. " \$frame_to_set=".$frame_to_set.", now= " . elphel_get_frame ( $GLOBALS ['master_port']));
 			log_msg ( "port ".$port. " setting @".$frame_to_set.": " .print_r($parToSet,1));
+			// set all in ASAP mode
 			elphel_set_P_arr ( $port, $parToSet, $frame_to_set, ELPHEL_CONST_FRAMEPAIR_FORCE_NEWPROC );
+			
+			$frame_to_set += 2;
+			log_msg ( "port ".$port. " setting @".$frame_to_set." SENSOR_RUN= " . $sensor_run ['SENSOR_RUN']);
+			elphel_set_P_arr ( $port, $sensor_run, $frame_to_set, ELPHEL_CONST_FRAMEPAIR_FORCE_NEWPROC );
+			
 			$frame_to_set += 2;
 			log_msg ( "port ".$port. " setting @".$frame_to_set." COMPRESSOR_RUN= " . $compressor_run ['COMPRESSOR_RUN']);
 			elphel_set_P_arr ( $port, $compressor_run, $frame_to_set, ELPHEL_CONST_FRAMEPAIR_FORCE_NEWPROC );
@@ -1437,7 +1459,7 @@ function readParsToPage($sensor_port, $page) {
 }
 // elphel_parse_P_name
 function saveRotateConfig($sensor_port, $numBackups) {
-	log_msg("saveRotateConfig($sensor_port, $numBackups)");
+	log_msg("saveRotateConfig($sensor_port, $numBackups), \$GLOBALS['configs'] [$sensor_port] ['defaultPage'] = ".$GLOBALS['configs'] [$sensor_port] ['defaultPage']);
 //	log_msg("GLOBALS['configs']=".print_r($GLOBALS['configs'],1));
 	
 	rotateConfig ($sensor_port, $numBackups );
@@ -1521,6 +1543,8 @@ function parseConfig($filename) {
 
 function encodeConfig($config) {
 	log_msg("encodeConfig(): sensor_port=".$GLOBALS['sensor_port']); // , config=".print_r($config,1));
+	log_msg(" \$config['defaultPage'] = ".$config['defaultPage']);
+	
 	$xml = "<?xml version=\"1.0\" standalone=\"yes\"?>\n<!-- This file is generated by " . $_SERVER ['argv'] [0] . " -->\n";
 	$xml .= "  <autocampars>\n";
 	$xml .= "<!-- File version -->\n";
