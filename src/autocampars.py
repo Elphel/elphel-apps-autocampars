@@ -35,35 +35,26 @@ import os
 import urlparse
 import urllib
 import time
-import socket
-import shutil
+#import shutil
 import sys
 import subprocess
-import select
 import urllib2
 import xml.etree.ElementTree as ET
+import threading
+import Queue
 
 import time
 import random
 PYDIR = "/usr/local/bin"
 VERILOG_DIR = "/usr/local/verilog"
 WWW_SCRIPT="autocampars.py"
-#    shout(pydir+"/test_mcntrl.py @"+verilogdir+"/hargs-eyesis")
-"""
-TEST_URLS = ["http://xmission.com",
-             "http://www3.elphel.com",
-             "http://wiki.elphel.com"]
-"""             
+TIMEOUT = 20 # seconds
 def process_py393(args):
-#    print ('process_py393 (',args,')')
-#    print (args['include'][0])
     cmd=PYDIR+'/test_mcntrl.py'
-#    print('0. calling ', cmd)    
     try:    
         cmd +=' @'+VERILOG_DIR+'/'+args['include'][0]
     except:
         pass    
-#    print('1. calling ', cmd)    
     try:
         if len(args['other'])  > 0:  
             cmd +=' '+args['other'][0]
@@ -76,21 +67,16 @@ def process_py393(args):
     fmt="""<?xml version="1.0"?>
 <result>%d</result>    
 """
-#    print('fmt=',fmt)
-    """
-    b=0;
-    with open ('/dev/urandom','rb') as randf:
-        for _ in range(4):
-            b = (b << 8)+ord(randf.read(1))
-    random.seed(b)
-    time.sleep(random.random()*5.0)
-    """
     print (fmt%(rslt))
-#    print ('<!--random.random()*5.0 = ',random.random()*5.0,' -->')
     print ('<!--process_py393 (',args,')-->')
     print('<!-- called ',cmd,'-->')    
     
 def remote_parallel393(args, host, timeout=0): #fp in sec
+    if not isinstance(host,(list,tuple)):
+        if not isinstance(args,(list,tuple)):
+            host=[host]
+        else:
+            host=[host]*len(args)  
     if not isinstance(args,(list,tuple)):
         args=[args]*len(host)
     argshosts=zip(args,host)    
@@ -100,92 +86,48 @@ def remote_parallel393(args, host, timeout=0): #fp in sec
     for i in argshosts:
         i[0]['cmd'] = 'py393'
         urls.append("http://"+i[1]+"/"+WWW_SCRIPT+"?"+urllib.urlencode(i[0]))
-    """    
-    try:
-        urls += TEST_URLS
-    except:
-        pass          
-    print ('urls=',urls)
-    """
     return  remote_parallel_urls(urls=urls, timeout=timeout)
 
-def remote_parallel_urls(urls, timeout=0): #fp in sec
-    rqs=[]
-    pending= [True]*len(urls)
-    rslts = [None]*len(urls)
-    for url in urls:
-        time.sleep(random.random()*1.0)
-        rqs.append(urllib2.urlopen(url))
-    while any(pending): #implement timeout
-        if (timeout):
-#        if True:
-            ready_to_read, _, _ = select.select( #ready_to_write, in_error
-                                                 [rqs[i] for i,t in enumerate(pending) if t], # potential_readers,
-                                                 [],         # potential_writers,
-                                                 [],
-                                                 timeout)         # potential_errs,
-        else:
-            ready_to_read, _, _ = select.select( #ready_to_write, in_error
-                                                 [rqs[i] for i,t in enumerate(pending) if t], # potential_readers,
-                                                 [],         # potential_writers,
-                                                 [])         # potential_errs,
-        print('len(ready_to_read)= ',len(ready_to_read))
-        if not ready_to_read: # timeout
-#            break
-            print('==== @ ',time.time())
-            continue
-        #find indices of the ready
-        for fd in ready_to_read:
-            fi=rqs.index(fd)
-            print('--Got response from ',urls[fi],' (',fi,') @ ',time.time())
-            rslts[fi] = r=fd.read() 
-            pending[fi]=False
-    print('results=',rslts)
+def remote_parallel_urls(urls, timeout=0): #imeout will restart for each next url
+    def read_url(index, queue, url):
+        queue.put((index, urllib2.urlopen(url).read()))
+
+    queue = Queue.Queue()
+    for index, url in enumerate(urls):
+        thread = threading.Thread(target=read_url, args = (index, queue, url))
+        thread.daemon = True
+        thread.start()
+    rslts=[None]*len(urls)
+    if not timeout:
+        timeout = None
+    for _ in urls:
+        try:
+            rslt = queue.get(block=True, timeout=timeout)
+            rslts[rslt[0]] = rslt[1]
+        except:
+            break
     return rslts
     #if None in rslts - likely timeout happened
     
-def remote_py393(args, host):
-    print ("remote_py393(",args,',',host,')')
-    if isinstance(host,(list,tuple)):
-        rslts =  remote_parallel393(args,host)
-    else:  
-        args['cmd'] = 'py393'
-        uea = urllib.urlencode(args)
-        url="http://"+host+"/"+WWW_SCRIPT+"?"+uea
-        print ("opening url:",url)
-        rslts = [urllib2.urlopen(url).read()]
-        print('Received:',rslts)
-    for i, r in enumerate(rslts):
-        try:
-            rslts[i] = int(ET.fromstring(r).text)
-        except:
-            rslts[i] = -1
-    return rslts
  
 def remote_wget(url, host, timeout=0) : #split_list_arg(sys.argv[1]))
     print ("remote_wget(",args,',',host,')')
     if not isinstance(host,(list,tuple)):
         host=[host]
-    if (len(host)>1) or (len(url)>1):
-        if len(host) > len(url):
-            url+= [url[-1]]*(len(host) - len(url))
-        elif len(url) > len(url):
-            host += [host[-1]]*(len(url) - len(host))
-            
-        argshosts=zip(args,host)    
-        print ('remote_parallel393(args=',args,' host=',host,')')
-        print ('argshosts=',argshosts)
-        urls=[]
-        for i in argshosts:
-            urls.append("http://"+i[1]+"/"+i[0])
-        rslts=remote_parallel_urls(urls=urls, timeout=timeout)
-    else:
-        print ("opening url:",url)
-        rslts = [urllib2.urlopen(url).read()]
-        print('Received:'+rslts)
+    if len(host) > len(url):
+        url+= [url[-1]]*(len(host) - len(url))
+    elif len(url) > len(url):
+        host += [host[-1]]*(len(url) - len(host))
+        
+    argshosts=zip(args,host)    
+    print ('remote_wget(args=',args,' host=',host,')')
+    print ('argshosts=',argshosts)
+    urls=[]
+    for i in argshosts:
+        urls.append("http://"+i[1]+"/"+i[0])
+    rslts=remote_parallel_urls(urls=urls, timeout=timeout)
     # parse results here
     return rslts
-
     
 def process_http():
     try:
@@ -222,7 +164,7 @@ def process_cmdline():
         except:
             pass
         print ('args=',args)     
-        remote_py393(args, split_list_arg(sys.argv[1]))
+        remote_parallel393 (args=args, host = split_list_arg(sys.argv[1]), timeout=TIMEOUT)
     elif sys.argv[2] == "wget":
         urls = sys.argv[3:]
         remote_wget(urls, split_list_arg(sys.argv[1]))
