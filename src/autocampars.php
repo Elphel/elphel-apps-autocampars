@@ -420,10 +420,16 @@ USAGE;
 foreach ( $GLOBALS ['ports'] as $port ) {
 	$old_version = $old_versions[get_port_index($port)];
 	if ($GLOBALS['version'] != $old_version) { // issue warning if mismatch, but may continue
+		$severity = ($GLOBALS['version'] != $GLOBALS['configs'][$port]['version'])?"ERROR":"WARNING";
 		$warn = <<<WARN
-Warning! Version numbers of this script and the config file for port $port mismatch:
+$severity! Version numbers of this script and the config file for port $port mismatch:
 Script ({$_SERVER['argv'][0]}):{$GLOBALS['version']}.
 Config file ({$GLOBALS ['configPaths'][$port]}): {$old_version}
+WARN;
+if ($severity=="WARNING") {
+	$warn .= "\nUpdating as '--ignore-revision' is set."; 
+} else {
+	$warn .= <<<WARN
 This may (or may not) cause errors. You have several options:
  1 - re-run this script with '--ignore-revision' - the file will have
      new revision number written
@@ -433,9 +439,9 @@ You may also provide the same parameters in the HTTP GET request, i.e.:
 http://192.168.0.9/autocampars.php?new
 
 WARN;
+}
 		echo $warn;
 		log_msg($warn);
-		fwrite ( $GLOBALS['logFile'], $warn );
 		if ($GLOBALS['version'] != $GLOBALS['configs'][$port]['version']){
 			log_close();
 			exit ( 1 ); // / abort
@@ -483,6 +489,9 @@ function update_minor_version($port, $silent = 0) {
 			$GLOBALS ['configs'] [$port] ['version'] = $GLOBALS ['version'];
 			$GLOBALS['configs'][$port]['version'] = $GLOBALS['version'];
 			saveRotateConfig ($port, $GLOBALS['numBackups'] );
+		} else {
+			log_msg ( "+++ ERROR: Can not auto-update version for port $port as MAJOR revision differs: " .
+					$GLOBALS ['configs'] [$port] ['version'] . " to " . $GLOBALS ['version'] );
 		}
 	}
 }
@@ -1493,7 +1502,7 @@ function rotateConfig($sensor_port,$numBackups) {
 	for($i = $numBackups - 1; $i > 0; $i --)
 		if (file_exists ( backupName ($sensor_port, $i - 1 ) ))
 			rename ( backupName ($sensor_port, $i - 1 ), backupName ($sensor_port, $i ) );
-	log_msg("cheking path ".$GLOBALS['configPaths'][$sensor_port].": ".file_exists ( $GLOBALS['configPaths'][$sensor_port]));
+	log_msg("checking path ".$GLOBALS['configPaths'][$sensor_port].": ".file_exists ( $GLOBALS['configPaths'][$sensor_port]));
 	if (($numBackups > 0) && (file_exists ( $GLOBALS['configPaths'][$sensor_port])))
 		rename ( $GLOBALS['configPaths'][$sensor_port], backupName ($sensor_port, 0 ) );
 }
