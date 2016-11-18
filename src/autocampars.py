@@ -86,7 +86,10 @@ def remote_parallel393(args, host, timeout=0): #fp in sec
     for i in argshosts:
         i[0]['cmd'] = 'py393'
         urls.append("http://"+i[1]+"/"+WWW_SCRIPT+"?"+urllib.urlencode(i[0]))
-    return  remote_parallel_urls(urls=urls, timeout=timeout)
+    rslts =  remote_parallel_urls(urls=urls, timeout=timeout)
+    for num,result in enumerate(results):
+        print (">>>>> ",num,": ",result);
+    return  rslts
 
 def remote_parallel_urls(urls, timeout=0): #imeout will restart for each next url
     def read_url(index, queue, url):
