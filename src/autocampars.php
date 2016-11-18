@@ -369,6 +369,7 @@ if ($_SERVER ['REQUEST_METHOD'] == "GET") {
 } else {
 	$old_versions=array();
 	foreach ( $GLOBALS ['ports'] as $port ) {
+		update_minor_version($port, array_key_exists('--ignore-revision',$_SERVER ['argv'])?1:0);
 		$old_versions[]=$GLOBALS['configs'][$port]['version'];
 	}
 	foreach ( $_SERVER ['argv'] as $param ) {
@@ -388,7 +389,6 @@ if ($_SERVER ['REQUEST_METHOD'] == "GET") {
 			foreach ( $GLOBALS ['ports'] as $port ) {
 				$GLOBALS['configs'][$port]['version'] = $GLOBALS['version'];
 				log_msg("processPost($port) --ignore_revision");
-//				log_msg("GLOBALS['configs']=".print_r($GLOBALS['configs'],1));
 				
 				saveRotateConfig ($port, $GLOBALS['numBackups'] );
 			}
@@ -471,6 +471,23 @@ log_close ();
 exit ( 0 );
 
 // ============ Functions =============
+/** Update and warn if only minor revision number has changed*/
+function update_minor_version($port, $silent = 0) {
+	if ($GLOBALS ['configs'] [$port] ['version'] != $GLOBALS ['version']) {
+		if (substr ( $GLOBALS ['configs'] [$port] ['version'], 0, strrpos ( $GLOBALS ['configs'] [$port] ['version'], '.' ) ) ==
+				substr ( $GLOBALS ['version'], 0, strrpos ( $GLOBALS ['version'], '.' ) )) {
+			if (!$silent) {		
+				log_msg ( "+++ WARNING: updating minor mismatch version for port $port: " .
+						$GLOBALS ['configs'] [$port] ['version'] . " to " . $GLOBALS ['version'] );
+			}
+			$GLOBALS ['configs'] [$port] ['version'] = $GLOBALS ['version'];
+			$GLOBALS['configs'][$port]['version'] = $GLOBALS['version'];
+			saveRotateConfig ($port, $GLOBALS['numBackups'] );
+		}
+	}
+}
+
+
 function get_port_index($port){
 	for ($i = 0; $i < count($GLOBALS ['ports']); $i++) if  ( $GLOBALS ['ports'][$i] == $port ) return $i;
 	return -1;
@@ -1039,9 +1056,9 @@ WARN_PORT;
 	if (array_key_exists ( 'ignore-revision', $_GET ) && ($GLOBALS['version'] != $GLOBALS['configs'][$port] ['version'])) {
 		$GLOBALS['configs'][$port]['version'] = $GLOBALS['version'];
 		log_msg("processGet($port) - processGet ignore-revision");
-//		log_msg("GLOBALS['configs']=".print_r($GLOBALS['configs'],1));
 		saveRotateConfig ($port, $GLOBALS['numBackups'] );
 	}
+	update_minor_version($port, 0);
 	if ($GLOBALS['version'] != $GLOBALS['configs'][$port]['version']) {
 		startPage ( "Warning: version numbers mismatch", "function updateLink(){}" );
 		$warn = <<<WARN
