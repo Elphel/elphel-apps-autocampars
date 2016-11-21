@@ -42,13 +42,16 @@ import urllib2
 import xml.etree.ElementTree as ET
 import threading
 import Queue
-
+import json
 import time
 import random
 PYDIR = "/usr/local/bin"
 VERILOG_DIR = "/usr/local/verilog"
 WWW_SCRIPT="autocampars.py"
-TIMEOUT = 20 # seconds
+TIMEOUT = 30 # seconds 
+GPIO_10389 =       "/sys/devices/soc0/elphel393-pwr@0/gpio_10389"
+SATA_MODULE_CTRL = "/sys/devices/soc0/amba@0/80000000.elphel-ahci/load_module"
+STATE_FILE =       "/var/volatile/state/camera"
 def process_py393(args):
     cmd=PYDIR+'/test_mcntrl.py'
     try:    
@@ -64,12 +67,159 @@ def process_py393(args):
         l=0    
     rslt= subprocess.call(cmd,shell=True)
 #    rslt = l
-    fmt="""<?xml version="1.0"?>
-<result>%d</result>    
-"""
+    fmt= '<?xml version="1.0"?><result>%d</result>'
     print (fmt%(rslt))
     print ('<!--process_py393 (',args,')-->')
     print('<!-- called ',cmd,'-->')    
+
+def check_process(proc_name):
+    pass
+
+"""
+def restart():
+    command = "/sbin/shutdown -r now"
+#    command = "reboot -f"
+    process = subprocess.Popen(command.split(), stdout=subprocess.PIPE)
+    output = process.communicate()[0]
+"""
+
+def process_pyCmd(args):
+    xml=None
+    rslt=""
+    err=""
+    try:    
+        fname = args['include'][0] # name of function to call
+    except:
+        fname = None    
+    try:
+        fargs = args['other'][0]
+    except:
+        fargs=[]
+    if not fname:
+        err="Function to call is not specified"
+    elif fname == "autocampars": # alternatively will try with wget
+        r = subprocess.call("autocampars.php --init_stage="+fargs[0], shell=True) # Do not need to capture output - it is in the logs
+        if not r:
+            rslt += 'OK'
+        else:
+            err = str(r)              
+        
+    elif fname == "reboot":
+        xml=ET.Element('root')
+        v=ET.SubElement(xml, 'reboot')
+        v.text='"started..."'
+        print ('<?xml version="1.0"?>'+ET.tostring(xml))
+        sys.stdout.flush()
+        sys.stdout.close()
+        command = "/sbin/shutdown -r now" # 'reboot -f' does npot work 
+        process = subprocess.Popen(command.split(), stdout=subprocess.PIPE)
+        output = process.communicate()[0]
+        
+    elif fname == "state":
+        xml=ET.Element('root')
+        try:
+            with open (STATE_FILE,"r") as f:
+                content = f.read()
+        except Exception, e:
+            err=str(e)
+        if not err:
+            for line in content.split("\n"): #split it into lines
+                try:
+                    line = line.strip().split('=')
+                    if (len(line) == 2) and (line[0][0] != '#'): # will only ignore leading '#', not inline
+                        key = line[0].strip()
+                        value = line[1].strip()
+                except:
+                    continue
+                v=ET.SubElement(xml, key)
+                v.text=value
+        # add autocampars.php process if running
+        try:
+            if 'autocampars.php' in subprocess.check_output("ps -w",shell=True):
+                v=ET.SubElement(xml, 'autocampars')
+                v.text='"Running"'
+        except Exception, e:
+            err=str(e)
+                       
+    elif fname == "start_gps_compass":
+        try:
+            rslt = subprocess.check_output("start_gps_compass.php",shell=True)
+        except Exception, e:
+            err=str(e)
+    elif fname == "disable_gpio_10389":
+        with open (GPIO_10389,"w") as f:
+            print ('0x101',file=f)
+            f.flush() # otherwise second access is lost !!
+            print ('0x100',file=f)
+        time.sleep(1) # check if needed
+        rslt = "OK"
+    elif fname == "init_sata":
+        try:
+            rslt += subprocess.check_output(PYDIR+"/x393sata.py",shell=True)       
+            subprocess.call("modprobe ahci_elphel &",shell=True)
+            time.sleep(2) # check if needed
+            with open (SATA_MODULE_CTRL,"w") as f:
+                print ('1',file=f)
+        except Exception, e:
+            err=str(e)
+    elif fname == "init_sata_0": #first step
+        try:
+            rslt += subprocess.check_output(PYDIR+"/x393sata.py",shell=True)       
+            subprocess.call("modprobe ahci_elphel &",shell=True)
+        except Exception, e:
+            err=str(e)
+    elif fname == "init_sata_1": #second step (after some delay)
+        try:
+            with open (SATA_MODULE_CTRL,"w") as f:
+                print ('1',file=f)
+            rslt += "OK"    
+        except Exception, e:
+            err=str(e)
+    elif fname == "ls": #just for testing
+        try:
+            rslt = subprocess.check_output("ls -all",shell=True) 
+        except Exception, e:
+            err=str(e)
+
+    if not xml:
+        xml=ET.Element('root')
+        if rslt:
+            result=ET.SubElement(xml, 'result')
+            result.text=rslt
+    if err:
+        emsg=ET.SubElement(xml, 'error')
+        emsg.text='"'+err+'"'
+    print ('<?xml version="1.0"?>'+ET.tostring(xml))
+    return xml
+#    print ('<!--process_py393 (',args,')-->')
+#    print('<!-- called ',cmd,'-->')    
+
+def process_shell(args):
+    xml=ET.Element('root')
+    rslt=""
+    err=""
+    try:    
+        cmd = args['include'][0] # name of function to call
+    except:
+        err = 'Shell command is not specified'    
+    try:
+        fargs = args['other'][0]
+    except:
+        fargs=[]
+    if not err:    
+        cmd += ' '+ ' '.join(str(e) for e in fargs)
+        try:
+            rslt += subprocess.check_output(cmd,shell=True)       
+        except Exception, e:
+            err=str(e)
+    if rslt:
+        result=ET.SubElement(xml, 'result')
+        result.text=rslt
+    if err:
+        emsg=ET.SubElement(xml, 'error')
+        emsg.text='"'+err+'"'
+    print ('<?xml version="1.0"?>'+ET.tostring(xml))
+    return xml
     
 def remote_parallel393(args, host, timeout=0): #fp in sec
     if not isinstance(host,(list,tuple)):
@@ -80,20 +230,29 @@ def remote_parallel393(args, host, timeout=0): #fp in sec
     if not isinstance(args,(list,tuple)):
         args=[args]*len(host)
     argshosts=zip(args,host)    
-    print ('remote_parallel393(args=',args,' host=',host,')')
-    print ('argshosts=',argshosts)
+##    print ('remote_parallel393(args=',args,' host=',host,')')
+##    print ('argshosts=',argshosts)
     urls=[]
     for i in argshosts:
-        i[0]['cmd'] = 'py393'
+#        i[0]['cmd'] = 'py393'
         urls.append("http://"+i[1]+"/"+WWW_SCRIPT+"?"+urllib.urlencode(i[0]))
-    rslts =  remote_parallel_urls(urls=urls, timeout=timeout)
-    for num,result in enumerate(results):
-        print (">>>>> ",num,": ",result);
-    return  rslts
+    results =  remote_parallel_urls(urls=urls, timeout=timeout)
+##    for num,result in enumerate(results):
+##        print (">>>>> ",num,": ",result);
+    print (json.dumps(results)) #Each line... ? Use json?
+    return  results
 
 def remote_parallel_urls(urls, timeout=0): #imeout will restart for each next url
     def read_url(index, queue, url):
-        queue.put((index, urllib2.urlopen(url).read()))
+        try:
+            queue.put((index, urllib2.urlopen(url).read()))
+        except Exception, e:
+            # create xml with error message
+            xml =  ET.Element('root')
+            emsg = ET.SubElement(xml, 'error')
+            emsg.text = '"' + str(e) + '"'
+            queue.put((index,'<?xml version="1.0"?>'+ET.tostring(xml)))
+            
 
     queue = Queue.Queue()
     for index, url in enumerate(urls):
@@ -107,14 +266,16 @@ def remote_parallel_urls(urls, timeout=0): #imeout will restart for each next ur
         try:
             rslt = queue.get(block=True, timeout=timeout)
             rslts[rslt[0]] = rslt[1]
-        except:
+        except Exception, e:
+#            print ("***** Error: ",str(e),rslt) ## Only timeout errors should be here
             break
+##    print("*** remote_parallel_urls(): got ",rslts)  
     return rslts
     #if None in rslts - likely timeout happened
     
  
 def remote_wget(url, host, timeout=0) : #split_list_arg(sys.argv[1]))
-    print ("remote_wget(",args,',',host,')')
+#    print ("remote_wget(",url,',',host,')')
     if not isinstance(host,(list,tuple)):
         host=[host]
     if len(host) > len(url):
@@ -122,14 +283,15 @@ def remote_wget(url, host, timeout=0) : #split_list_arg(sys.argv[1]))
     elif len(url) > len(url):
         host += [host[-1]]*(len(url) - len(host))
         
-    argshosts=zip(args,host)    
-    print ('remote_wget(args=',args,' host=',host,')')
-    print ('argshosts=',argshosts)
+    argshosts=zip(url,host)    
+#    print ('remote_wget(url=',url,' host=',host,')')
+#    print ('argshosts=',argshosts)
     urls=[]
     for i in argshosts:
         urls.append("http://"+i[1]+"/"+i[0])
     rslts=remote_parallel_urls(urls=urls, timeout=timeout)
     # parse results here
+    print (json.dumps(rslts)) #Each line... ? Use json?
     return rslts
     
 def process_http():
@@ -143,6 +305,12 @@ def process_http():
         if qs['cmd'][0] == 'py393':
             process_py393(qs)
             return
+        elif qs['cmd'][0] == 'pyCmd':
+            process_pyCmd(qs)
+            return
+        elif qs['cmd'][0] == 'shell':
+            process_shell(qs)
+            return
     except:
         pass
               
@@ -153,10 +321,18 @@ def split_list_arg(arg):
         return arg
     
 def process_cmdline():
-    print('sys.argv = ',sys.argv)
-    print('sys.argv[1] = ',split_list_arg(sys.argv[1]))
+#    print('sys.argv = ',sys.argv)
+#    print('sys.argv[1] = ',split_list_arg(sys.argv[1]))
     args={}
-    if sys.argv[2] == "py393":
+    """
+    py393 <include file> <other parameters> -> test_mcntrl @<include file> <other parameters> 
+    pyCmd <function name> <arguments>
+    shell <external-command-to-call> <arguments>
+    """
+    if (sys.argv[2] == "py393") or (sys.argv[2] == "pyCmd") or (sys.argv[2] == "shell"):
+        
+        args['cmd'] = sys.argv[2] # added
+        
         try:
             args['include'] =sys.argv[3]
         except:
@@ -166,14 +342,21 @@ def process_cmdline():
                 args['other'] =' '.join(sys.argv[4:])
         except:
             pass
-        print ('args=',args)     
+##        print ('args=',args)     
         remote_parallel393 (args=args, host = split_list_arg(sys.argv[1]), timeout=TIMEOUT)
     elif sys.argv[2] == "wget":
         urls = sys.argv[3:]
         remote_wget(urls, split_list_arg(sys.argv[1]))
+
+    elif sys.argv[2] == "same_cmd":
+        urls = sys.argv[3:]
+        remote_wget(urls, split_list_arg(sys.argv[1]))
         
     else:
-        pass     
+        pass
+
+    
+        
 def main():
     if 'REQUEST_METHOD' in os.environ:
         return process_http()
