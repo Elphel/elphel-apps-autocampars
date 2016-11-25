@@ -276,7 +276,7 @@ log_msg("Processing camera state: " . $GLOBALS['camera_state_arr']['state']);
 
 get_sysfs_sensors();
 
-log_msg("Sensors map read from the sysfs:\n".str_sensors($GLOBALS['sensors']),1);
+log_msg("Sensors map read from the sysfs: ".str_sensors($GLOBALS['sensors'],1),1);
 
 $GLOBALS['useDefaultPageNumber'] = 15;
 $GLOBALS['protectedPage'] = 0; // / change to -1 to enable saving to page 0
@@ -507,15 +507,15 @@ function update_minor_version($port, $silent = 0) {
 		if (substr ( $GLOBALS ['configs'] [$port] ['version'], 0, strrpos ( $GLOBALS ['configs'] [$port] ['version'], '.' ) ) ==
 				substr ( $GLOBALS ['version'], 0, strrpos ( $GLOBALS ['version'], '.' ) )) {
 			if (!$silent) {		
-				log_msg ( "+++ WARNING: updating minor mismatch version for port $port: " .
-						$GLOBALS ['configs'] [$port] ['version'] . " to " . $GLOBALS ['version'] );
+				log_msg ( "WARNING: updating minor mismatch version for port $port: " .
+						$GLOBALS ['configs'] [$port] ['version'] . " to " . $GLOBALS ['version'], 4);
 			}
 			$GLOBALS ['configs'] [$port] ['version'] = $GLOBALS ['version'];
 			$GLOBALS['configs'][$port]['version'] = $GLOBALS['version'];
 			saveRotateConfig ($port, $GLOBALS['numBackups'] );
 		} else {
-			log_msg ( "+++ ERROR: Can not auto-update version for port $port as MAJOR revision differs: " .
-					$GLOBALS ['configs'] [$port] ['version'] . " to " . $GLOBALS ['version'] );
+			log_msg ( "ERROR: Can not auto-update version for port $port as MAJOR revision differs: " .
+					$GLOBALS ['configs'] [$port] ['version'] . " to " . $GLOBALS ['version'], 2);
 		}
 	}
 }
@@ -625,15 +625,16 @@ function detect_camera(){
 				}
 			}
 			if ($needupdate)  {
-				log_msg("Sensors not disabled by the application mode (10389 EEPROM):\n".str_sensors($GLOBALS['sensors']),1);
+				log_msg("Sensors not disabled by the application mode (10389 EEPROM): ".str_sensors($GLOBALS['sensors'],1),1);
 				update_sysfs_sensors();
 			}
 			
 			// All eyesis cameras - disable fan control to re-use for 10359 power
 			if ($GLOBALS['camera_state_arr']['eyesis_power']){ // disable fan control, reuse it to control power
 				$rslt=set_eyesis_power_control();
-				log_msg("set_eyesis_power_control()=>".print_r($rslt,1));
-				log_msg("GLOBALS['camera_state_arr']=>".print_r($GLOBALS['camera_state_arr'],1));
+				log_msg("Setting sensors/multiplexers power");
+				log_msg("set_eyesis_power_control()=>".print_r($rslt,1),0);
+				log_msg("GLOBALS['camera_state_arr']=>".print_r($GLOBALS['camera_state_arr'],1),0);
 			}
 			// Set IPs of slave cameras (if any)
 			if ($multicamera) {
@@ -658,7 +659,7 @@ function detect_camera(){
 			}
 			
 			log_msg("Continue with master camera");
-			log_msg("=== Setting FPGA and sensor power ===");
+			log_msg("Setting FPGA and sensor power");
 
 			if ($GLOBALS['camera_state_arr']['has_slaves']) {
 				$rslt = wait_slaves_boot ($GLOBALS['BOOT_RETRIES']);
@@ -737,8 +738,8 @@ function detect_camera(){
 				fclose($f);
 				log_msg("Started detection for sensor port ".$port);
 			}
-			log_msg("System FPGA version:   ".trim(file_get_contents('/sys/devices/soc0/elphel393-framepars@0/fpga_version')));
-			log_msg("Sensor interface type: ".trim(file_get_contents('/sys/devices/soc0/elphel393-framepars@0/fpga_sensor_interface')));
+			log_msg("System FPGA version:   ".trim(file_get_contents('/sys/devices/soc0/elphel393-framepars@0/fpga_version')), 3);
+			log_msg("Sensor interface type: ".trim(file_get_contents('/sys/devices/soc0/elphel393-framepars@0/fpga_sensor_interface')), 3);
 			log_msg("All frames:\n"          .trim(file_get_contents('/sys/devices/soc0/elphel393-framepars@0/all_frames')),0);
 			log_msg('Frames: '. implode(", ",$frame_nums),0);
 				
@@ -747,7 +748,7 @@ function detect_camera(){
 			foreach ($GLOBALS['ports'] as $port) {
 				if (elphel_get_P_value ( $port, ELPHEL_SENSOR) != $sensor_code){
 					log_msg("#### Wrong/missing sensor on port ".$port.", code=".elphel_get_P_value ( $port, ELPHEL_SENSOR).
-							' (expected '.$sensor_code.") . Driver reports errors until port is disabled at later stage ####",1);
+							' (expected '.$sensor_code.") . Driver reports errors until port is disabled at later stage ####",2);
 					for ($chn =0; $chn <4; $chn++) {
 						$GLOBALS['sensors'][$port][$chn] = 'none';
 					}
@@ -775,7 +776,7 @@ function detect_camera(){
 				}
 			}
 			if ($needupdate)  update_sysfs_sensors();
-			log_msg("detected sensors:\n".str_sensors($GLOBALS['sensors']),1);
+			log_msg("Detected sensors: ".str_sensors($GLOBALS['sensors'],1),3);
 				
 			// Collect results from slave channels that were running in parallel
 			$nrep =0;
@@ -838,9 +839,10 @@ function detect_camera(){
 
 			if (isset ($curl_data)){ // wait and collect responses
 				$enable_echo = !array_key_exists('REQUEST_METHOD',$_SERVER);
-				if ($enable_echo) echo "Waiting slaves to finish: ";
+				if ($enable_echo) echo colorize("Waiting slaves to finish (number left): ",'YELLOW',0);
 				$results =  curl_multi_finish($curl_data, true, 0, $enable_echo); // Switch true -> false if errors are reported (other output damaged XML)
-				log_msg('curl_multi returned: '.print_r($results,1));
+				if ($enable_echo) echo colorize(" DONE\n",'GREEN',0);
+				log_msg('curl_multi returned: '.print_r($results,1),0);
 			}
 			if ($GLOBALS['camera_state_arr']['exit_stage'] == $GLOBALS['camera_state_arr']['state']){
 				respond_xml($GLOBALS['camera_state_arr']['state']);
@@ -854,10 +856,16 @@ function detect_camera(){
 	
 }
 
-function str_sensors($sens_arr){
+function str_sensors($sens_arr,$inline=0){
 	$sports=array();
-	foreach ($sens_arr as $port=>$subchn)	$sports[]=$port.': '.implode(", ",$subchn);
-	return implode("\n",$sports);
+	if ($inline) {
+		foreach ($sens_arr as $port=>$subchn)	$sports[]=implode(", ",$subchn);
+		return '['.implode("],[",$sports).']';
+	} else {
+		foreach ($sens_arr as $port=>$subchn)	$sports[]=$port.': '.implode(", ",$subchn);
+		return implode("\n",$sports);
+		
+	}
 }
 
 
@@ -906,7 +914,7 @@ function init_cameras(){ // $page) { init can only be from default page as page 
 					$urls[] = "http://" . $ip . "/autocampars.php?init_stage=SENSORS_SYNCHRONIZED&exit_stage=INITIALIZED";
 				}
 				$curl_data = curl_multi_start ($urls);
-				log_msg ($cmd . 'Started curl_multi: '.print_r($urls),0);
+				log_msg ($cmd . 'Started curl_multi: '.print_r($urls,1),0);
 			}			
 			
 			// Set most parameters in immediate mode (to protect from i2c 64-command overflow),
@@ -1020,7 +1028,7 @@ function init_cameras(){ // $page) { init can only be from default page as page 
 					log_msg("2.Trigger $i:\n".file_get_contents('/sys/devices/soc0/elphel393-framepars@0/all_frames'));
 				}
 				elphel_set_P_arr ($GLOBALS['master_port'], $GLOBALS['trig_pars']); // set other parameters - they will not take effect immediately
-				log_msg("Started camera in free running mode");
+				log_msg("Started camera in free running mode",3);
 				log_msg("Reached state ".$GLOBALS['camera_state_arr']['state']);
 				
 			} else if (!array_key_exists('TRIG_CONDITION',$GLOBALS['trig_pars']) || !$GLOBALS['trig_pars']['TRIG_CONDITION']){
@@ -1037,7 +1045,7 @@ function init_cameras(){ // $page) { init can only be from default page as page 
 				usleep ($GLOBALS['camera_state_arr']['max_frame_time']);
 				if ($trig_period){
 					elphel_set_P_value ( $GLOBALS['master_port'], ELPHEL_TRIG_PERIOD,  $trig_period, ELPHEL_CONST_FRAME_IMMED);
-					log_msg("Started camera in periodic self-triggered mode, period = ".(0.00000001*$trig_period)." s");
+					log_msg("Started camera in periodic self-triggered mode, period = ".(0.00000001*$trig_period)." s",3);
 				} else { // manually advance frames
 					if (!$GLOBALS['camera_state_arr']['frames_skip_more'] >  ELPHEL_CONST_FRAME_DEAFAULT_AHEAD){
 						$GLOBALS['camera_state_arr']['frames_skip_more'] =  ELPHEL_CONST_FRAME_DEAFAULT_AHEAD + 1;
@@ -1077,8 +1085,9 @@ function init_cameras(){ // $page) { init can only be from default page as page 
 					log_msg("  trig_period = $trig_period");
 					log_msg("Remaining  GLOBALS[trig_pars] = ".print_r($GLOBALS['trig_pars'],1));
 					$enable_echo = !array_key_exists ('REQUEST_METHOD', $_SERVER);
-					if ($enable_echo) echo "Waiting slaves to finish initialization: ";
+					if ($enable_echo) echo colorize("Waiting slaves to finish initialization (number left): ",'YELLOW',0);
 					$results = curl_multi_finish ($curl_data, true, 0, $enable_echo);
+					if ($enable_echo) echo colorize(" DONE\n",'GREEN',0);
 					////$results = curl_multi_finish ($curl_data, false, 0, $enable_echo);
 					log_msg ('curl_multi returned: ' . print_r ($results, 1));
 					unset ($curl_data);
@@ -1091,7 +1100,7 @@ function init_cameras(){ // $page) { init can only be from default page as page 
 					}
 					if ($trig_period){
 						elphel_set_P_value ( $GLOBALS['master_port'], ELPHEL_TRIG_PERIOD,  $trig_period, ELPHEL_CONST_FRAME_IMMED);
-						log_msg("Started camera in periodic mode, period = ".(0.00000001*$trig_period)." s");
+						log_msg("Started camera in periodic mode, period = ".(0.00000001*$trig_period)." s",3);
 					} else { // manually advance frames
 						if (!$GLOBALS['camera_state_arr']['frames_skip_more'] >  ELPHEL_CONST_FRAME_DEAFAULT_AHEAD){
 							$GLOBALS['camera_state_arr']['frames_skip_more'] =  ELPHEL_CONST_FRAME_DEAFAULT_AHEAD + 1;
@@ -1196,38 +1205,7 @@ function update_sysfs_sensors()
 	get_sysfs_sensors();
 	log_msg ("Updated sysfs sensor map");
 }
-/*
-def colorize(string, color, bold):
-    color=color.upper()
-    attr = []
-    if color == 'RED':
-        attr.append('31')
-    elif color == 'GREEN':    
-        attr.append('32')
-    elif color == 'YELLOW':    
-        attr.append('33')
-    elif color == 'BLUE':    
-        attr.append('34')
-    elif color == 'MAGENTA':    
-        attr.append('35')
-    elif color == 'CYAN':    
-        attr.append('36')
-    elif color == 'GRAY':    
-        attr.append('37')
-    else:
-        pass
-        # red
-    if bold:
-        attr.append('1')
-    return '\x1b[%sm%s\x1b[0m' % (';'.join(attr), string)
-def log_msg(msg):
-    with open ('/proc/uptime') as f: 
-        t=float(f.read().split()[0])
-    with open(LOGFILE,'a') as msg_file:
-        print (colorize("[%8.2f] %s: "%(t, sys.argv[0].split('/')[-1].split('.')[0]),'YELLOW',0)+msg)
-        print("[%8.2f]  %s"%(t,msg),file=msg_file)
 
- */
 function colorize($string, $color, $bold) {
 	$color = strtoupper($color);
 	$attr = array();
@@ -1253,23 +1231,38 @@ function get_uptime(){
 function log_open(){
 	$GLOBALS['logFile'] = fopen ( $GLOBALS['logFilePath'], "a" );
 }
-function log_msg($msg, $any_length = -1) {
+
+/** Log message and optionally print to console */
+function log_msg($msg,         ///< message to print
+		         $mode = -1)   ///< -1 - print only short messages, 0 - never print, 1 - always print, 2 print in bold red (error), 3 - bold white, 4 - bold yellow (warning)
+{
 // do not output log when in HTTP request mode
 	$ut=get_uptime();
-	if (($any_length != 0) && !array_key_exists ('REQUEST_METHOD', $_SERVER) && (($any_length > 0) || (strlen ($msg) < $GLOBALS['LOG_MAX_ECHO']))) {
-//		echo '('.date ("G:i:s").' autocampars) ' . $msg . "\n";
-		printf(colorize(sprintf("[%8.2f] autocampars: ",$ut),"GREEN",0).$msg."\n");
+	if (($mode != 0) && !array_key_exists ('REQUEST_METHOD', $_SERVER) && (($mode > 0) || (strlen ($msg) < $GLOBALS['LOG_MAX_ECHO']))) {
+		switch ($mode) {
+			case 2:
+				$emsg = colorize($msg,'RED',1); // bold red
+				break;
+			case 3:
+				$emsg = colorize($msg,'',1);    // bold white
+				break;
+			case 4 :
+				$emsg = colorize($msg, 'YELLOW', 1); // bold white
+				break;
+			default:
+				$emsg = $msg;
+		}
+		printf(colorize(sprintf("[%8.2f] autocampars: ",$ut),"GREEN",0).$emsg."\n");
 	}
-//	fwrite ($GLOBALS['logFile'], $msg . " at " . date ("F j, Y, G:i:s") . "\n");
 	fwrite ($GLOBALS['logFile'], sprintf("%08.2f autocampars: %s\n",$ut,$msg)); // date ("F j, Y, G:i:s")
 }
 function log_error($msg) {
-	log_msg ($msg, 1);
+	log_msg ($msg, 2);
 	log_close ();
 	exit (1);
 }
 function log_close() {
-	log_msg ("Log file saved as " . $GLOBALS['logFilePath'], 1);
+	log_msg ("Log file saved as " . $GLOBALS['logFilePath'], 3);
 	log_msg ("----------------------------------------------", 0);
 	fclose ($GLOBALS['logFile']);
 	unset ($GLOBALS['logFile']); // to catch errors
@@ -1333,7 +1326,7 @@ function get_application_mode() {
 		if ($xml === false) {
 			log_msg("10389 board not present");
 		} else {
-			log_msg ( 'Application - ' . (( string ) $xml->app) . ', mode: ' . (( string ) $xml->mode) . "\n" );
+			log_msg ( 'Application - ' . (( string ) $xml->app) . ', mode: ' . (( string ) $xml->mode) . "\n" , 3);
 			$GLOBALS ['camera_state_arr'] ['rev10389'] = ''.$xml->rev;
 			if ((( string ) $xml->app) != '') {
 				$GLOBALS ['camera_state_arr'] ['application'] = ''.$xml->app;
@@ -1533,11 +1526,11 @@ function get_remote_states($IPs){
 // Wait for both slave modules to be in 'BOOT' state
 function wait_slaves_boot($retries){
 	if (!array_key_exists('REQUEST_METHOD',$_SERVER)){
-		echo 'Waiting for slaves to come up: ';
+		echo colorize('Waiting for slaves to come up: ','YELLOW',0);
 	}
 	for ($retry = 0; $retry < $retries; $retry++){
 		if (!array_key_exists('REQUEST_METHOD',$_SERVER)){
-			echo "$retry ";
+			echo colorize("$retry ",'YELLOW',1);
 		}
 		$states = get_remote_states(array(
 				$GLOBALS['camera_state_arr']['ip_top'],
@@ -1548,14 +1541,12 @@ function wait_slaves_boot($retries){
 		  	    array_key_exists('state',       $states[1]) &&
 		  	   !array_key_exists('autocampars', $states[0]) && // autocampars.php should already terminate
 		  	   !array_key_exists('autocampars', $states[1])){
-//		  	   	if (($states[0]['state']!='BOOT') || ($states[1]['state']!='BOOT')){
-		  	   		break; // wrong state - need system reboot TODO: Add slave reboot by master	
-//		  	   	}
+	  	   		break; // wrong state - need system reboot TODO: Add slave reboot by master	
 		  	}
 		}
 	}
 	if (!array_key_exists('REQUEST_METHOD',$_SERVER)){
-		echo " Done\n";
+		echo colorize(" Done\n",'GREEN',0);
 	}
 	log_msg("In wait_slaves_boot() states = ".print_r($states,1));
 	if (($states[0]['state'] == 'BOOT') || ($states[1]['state'] == 'BOOT')) return true;
@@ -2365,7 +2356,7 @@ function curl_multi_start($urls) {
 		curl_multi_exec ($curl_mh, $curl_active);
 		// we wait for a bit to allow stuff TCP handshakes to complete and so forth...
 		usleep (10000);
-		echo ".";
+//		echo ".";
 	}
 	return array ("mh" => $curl_mh,"handles" => $aCurlHandles);
 }
@@ -2381,8 +2372,7 @@ function curl_multi_finish($data, $use_xml=true, $ntry=0, $echo = false) {
 				$curl_mrc = curl_multi_exec ($curl_mh, $curl_active);
 			} while ($curl_mrc == CURLM_CALL_MULTI_PERFORM );
 		}
-		//		if ($echo) echo "$nrep: ($curl_active/$curl_mrc) ";
-		if ($echo) echo "$curl_active ";
+		if ($echo) echo colorize("$curl_active ",'YELLOW',1);
 		$nrep++;
 		if ($ntry && ($nrep > $ntry)) {
 			break;
