@@ -650,7 +650,7 @@ function detect_camera(){
 			
 			// Done if it is slave
 			if ($GLOBALS['camera_state_arr']['is_slave']){
-				respond_xml('This is a slave camera - waiting for master to contol next steps',''); // will exit(0)
+				respond_xml('This is a slave camera - waiting for master to contol next steps','',4); // will exit(0)
 			}
 			
 			// Sanity check
@@ -690,7 +690,7 @@ function detect_camera(){
 				$curl_data = curl_multi_start ($urls);
 				log_msg ($cmd . 'Started curl_multi');
 			} else if ($GLOBALS['camera_state_arr']['is_mt9p006']){
-				log_msg("=== Initializing FPGA ===");
+				log_msg("Initializing FPGA",3);
 				unset ($output);
 				exec ( 'autocampars.py localhost py393 hargs', $output, $retval );
 				$GLOBALS['camera_state_arr']['state'] ='BITSTREAM';
@@ -1269,7 +1269,7 @@ function log_close() {
 }
 
 /** Closes log file, optianally responxds with XML (if in HTTP mode), exits with 0/1 */
-function respond_xml($result,$error=null){
+function respond_xml($result,$error=null,$color_mode = 3){ // default white bold
 	if (array_key_exists('REQUEST_METHOD',$_SERVER)){
 		$xml = new SimpleXMLElement("<?xml version='1.0'  standalone='yes'?><autocampars/>");
 		if ($result !== ""){ //"" will not be loged/output
@@ -1288,7 +1288,7 @@ function respond_xml($result,$error=null){
 		printf($rslt);
 	}
 	if ($result !== ""){ //"" will not be loged/output
-		log_msg(''.$result);
+		log_msg(''.$result,$color_mode);
 	}
 	if ($error){
 		log_error($error);
