@@ -1196,6 +1196,54 @@ function update_sysfs_sensors()
 	get_sysfs_sensors();
 	log_msg ("Updated sysfs sensor map");
 }
+/*
+def colorize(string, color, bold):
+    color=color.upper()
+    attr = []
+    if color == 'RED':
+        attr.append('31')
+    elif color == 'GREEN':    
+        attr.append('32')
+    elif color == 'YELLOW':    
+        attr.append('33')
+    elif color == 'BLUE':    
+        attr.append('34')
+    elif color == 'MAGENTA':    
+        attr.append('35')
+    elif color == 'CYAN':    
+        attr.append('36')
+    elif color == 'GRAY':    
+        attr.append('37')
+    else:
+        pass
+        # red
+    if bold:
+        attr.append('1')
+    return '\x1b[%sm%s\x1b[0m' % (';'.join(attr), string)
+def log_msg(msg):
+    with open ('/proc/uptime') as f: 
+        t=float(f.read().split()[0])
+    with open(LOGFILE,'a') as msg_file:
+        print (colorize("[%8.2f] %s: "%(t, sys.argv[0].split('/')[-1].split('.')[0]),'YELLOW',0)+msg)
+        print("[%8.2f]  %s"%(t,msg),file=msg_file)
+
+ */
+function colorize($string, $color, $bold) {
+	$color = strtoupper($color);
+	$attr = array();
+	switch ($color) {
+		case 'RED':     $attr[]='31'; break;
+		case'GREEN':    $attr[]='32'; break;
+		case 'YELLOW':  $attr[]='33'; break;
+		case 'BLUE':	$attr[]='34'; break;
+		case 'MAGENTA':	$attr[]='35'; break;
+		case 'CYAN':	$attr[]='36'; break;
+		case 'GRAY':	$attr[]='37'; break;
+	}
+	if ($bold)	$attr[] = '1';
+	return sprintf("\x1b[%sm%s\x1b[0m",implode(';',$attr), $string);
+}
+
 
 function get_uptime(){
 	exec('cat /proc/uptime',$output,$retval);
@@ -1210,7 +1258,7 @@ function log_msg($msg, $any_length = -1) {
 	$ut=get_uptime();
 	if (($any_length != 0) && !array_key_exists ('REQUEST_METHOD', $_SERVER) && (($any_length > 0) || (strlen ($msg) < $GLOBALS['LOG_MAX_ECHO']))) {
 //		echo '('.date ("G:i:s").' autocampars) ' . $msg . "\n";
-		printf("(%08.2f autocampars) %s\n",$ut,$msg);
+		printf(colorize(sprintf("[%8.2f] autocampars: ",$ut),"GREEN",0).$msg."\n");
 	}
 //	fwrite ($GLOBALS['logFile'], $msg . " at " . date ("F j, Y, G:i:s") . "\n");
 	fwrite ($GLOBALS['logFile'], sprintf("%08.2f autocampars: %s\n",$ut,$msg)); // date ("F j, Y, G:i:s")
@@ -1222,7 +1270,7 @@ function log_error($msg) {
 }
 function log_close() {
 	log_msg ("Log file saved as " . $GLOBALS['logFilePath'], 1);
-	log_msg ("----------------------------------------------", 1);
+	log_msg ("----------------------------------------------", 0);
 	fclose ($GLOBALS['logFile']);
 	unset ($GLOBALS['logFile']); // to catch errors
 }
