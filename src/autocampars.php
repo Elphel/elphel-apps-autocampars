@@ -925,21 +925,22 @@ function init_cameras(){ // $page) { init can only be from default page as page 
 			foreach ( $GLOBALS['ports'] as $port ) {
 				if (!isset($all_parLater[$port]['SENSOR_RUN']))     $all_parLater[$port]['SENSOR_RUN'] = 2;
 				if (!isset($all_parLater[$port]['COMPRESSOR_RUN'])) $all_parLater[$port]['COMPRESSOR_RUN'] = 2;
-				if (isset ($all_parLater[$port]['DAEMON_EN'] )) { // 'DAEMON_EN' has prfececdence over individual bits
-					$daemon_en=$all_parLater[$port]['DAEMON_EN'];
-					$all_parLater[$port]['DAEMON_EN_AUTOEXPOSURE'] = ($daemon_en >> ELPHEL_CONST_DAEMON_BIT_AUTOEXPOSURE) & 1;
-					$all_parLater[$port]['DAEMON_EN_STREAMER'] =     ($daemon_en >> ELPHEL_CONST_DAEMON_BIT_STREAMER) & 1;
-					$all_parLater[$port]['DAEMON_EN_CCAMFTP'] =      ($daemon_en >> ELPHEL_CONST_DAEMON_BIT_CCAMFTP) & 1;
-					$all_parLater[$port]['DAEMON_EN_CAMOGM'] =       ($daemon_en >> ELPHEL_CONST_DAEMON_BIT_CAMOGM) & 1;
-					$all_parLater[$port]['DAEMON_EN_AUTOCAMPARS'] =  ($daemon_en >> ELPHEL_CONST_DAEMON_BIT_AUTOCAMPARS) & 1;
-					$all_parLater[$port]['DAEMON_EN_TEMPERATURE'] =  ($daemon_en >> ELPHEL_CONST_DAEMON_BIT_TEMPERATURE) & 1;
+				if (!isset($all_parLater[$port]['DAEMON_EN'])){ // set defaults here if none is set
+					$all_parLater[$port]['DAEMON_EN']= // set default values
+					( 1 << ELPHEL_CONST_DAEMON_BIT_AUTOEXPOSURE) |
+					( 1 << ELPHEL_CONST_DAEMON_BIT_STREAMER) |
+					( 0 << ELPHEL_CONST_DAEMON_BIT_CCAMFTP) |
+					( 0 << ELPHEL_CONST_DAEMON_BIT_CAMOGM) |
+					( 0 << ELPHEL_CONST_DAEMON_BIT_AUTOCAMPARS) |
+					( 0  << ELPHEL_CONST_DAEMON_BIT_TEMPERATURE);
 				}
-				if (!isset($all_parLater[$port]['DAEMON_EN_AUTOEXPOSURE']))  $all_parLater[$port]['DAEMON_EN_AUTOEXPOSURE'] = 1;
-				if (!isset($all_parLater[$port]['DAEMON_EN_STREAMER']))      $all_parLater[$port]['DAEMON_EN_STREAMER'] =     1;
-				if (!isset($all_parLater[$port]['DAEMON_EN_CCAMFTP']))       $all_parLater[$port]['DAEMON_EN_CCAMFTP'] =      0;
-				if (!isset($all_parLater[$port]['DAEMON_EN_CAMOGM']))        $all_parLater[$port]['DAEMON_EN_CAMOGM'] =       0;
-				if (!isset($all_parLater[$port]['DAEMON_EN_AUTOCAMPARS']))   $all_parLater[$port]['DAEMON_EN_AUTOCAMPARS'] =  0;
-				if (!isset($all_parLater[$port]['DAEMON_EN_TEMPERATURE']))   $all_parLater[$port]['DAEMON_EN_TEMPERATURE'] =  0;
+				$daemon_en=$all_parLater[$port]['DAEMON_EN'];
+				if (!isset ($all_parLater[$port]['DAEMON_EN_AUTOEXPOSURE'])) $all_parLater[$port]['DAEMON_EN_AUTOEXPOSURE'] = ($daemon_en >> ELPHEL_CONST_DAEMON_BIT_AUTOEXPOSURE) & 1;
+				if (!isset ($all_parLater[$port]['DAEMON_EN_STREAMER']))     $all_parLater[$port]['DAEMON_EN_STREAMER'] =     ($daemon_en >> ELPHEL_CONST_DAEMON_BIT_STREAMER) & 1;
+				if (!isset ($all_parLater[$port]['DAEMON_EN_CCAMFTP']))      $all_parLater[$port]['DAEMON_EN_CCAMFTP'] =      ($daemon_en >> ELPHEL_CONST_DAEMON_BIT_CCAMFTP) & 1;
+				if (!isset ($all_parLater[$port]['DAEMON_EN_CAMOGM']))       $all_parLater[$port]['DAEMON_EN_CAMOGM'] =       ($daemon_en >> ELPHEL_CONST_DAEMON_BIT_CAMOGM) & 1;
+				if (!isset ($all_parLater[$port]['DAEMON_EN_AUTOCAMPARS']))  $all_parLater[$port]['DAEMON_EN_AUTOCAMPARS'] =  ($daemon_en >> ELPHEL_CONST_DAEMON_BIT_AUTOCAMPARS) & 1;
+				if (!isset ($all_parLater[$port]['DAEMON_EN_TEMPERATURE']))  $all_parLater[$port]['DAEMON_EN_TEMPERATURE'] =  ($daemon_en >> ELPHEL_CONST_DAEMON_BIT_TEMPERATURE) & 1;
 				$all_parLater[$port]['DAEMON_EN']=
 				(($all_parLater[$port]['DAEMON_EN_AUTOEXPOSURE'] & 1) << ELPHEL_CONST_DAEMON_BIT_AUTOEXPOSURE) |
 				(($all_parLater[$port]['DAEMON_EN_STREAMER'] & 1)     << ELPHEL_CONST_DAEMON_BIT_STREAMER) |
