@@ -2447,6 +2447,7 @@ function createDefaultConfig($version, $port, $multisensor = false, $eyesis_mode
 	$HISTWND_RLEFT = 0x8000;
 	$HISTWND_RTOP = 0x8000;
 	$COLOR = 0;
+	$SENSOR_PHASE =  $multisensor ? 0x55 : 0x15;
 	
 	switch ($eyesis_mode) {
 		case 1 :
@@ -2686,7 +2687,7 @@ DEFAULT_CONFIG
 	
 	
 	// will create $SENSOR_PHASE=...;MULTI_PHASE1=...;MULTI_PHASE3=...;)
-	extract ( calculateDefaultPhases () ); // read sensor phases from memory or calculate from the eeproms for newer devices
+//	extract ( calculateDefaultPhases () ); // read sensor phases from memory or calculate from the eeproms for newer devices
 	// / Now select window orientations based on eyesis_mode
 	return <<<DEFAULT_CONFIG
 <?xml version="1.0" standalone="yes"?>
@@ -2829,7 +2830,7 @@ DEFAULT_CONFIG
       <DGAINB>"&quot;Digital gain&quot; for the blue color channel - 17 bit unsigned value. Default value is 0x8000 fro 1.0, so up to 4X gain boost is available before saturation"</DGAINB>
      <CORING_PAGE>"Number of coring LUT page number. Current software programs only page 0 (of 8) using CORING_INDEX parameter."</CORING_PAGE>
      <TILES>Number of 16x16 (20x20) tiles in a compressed frame (readonly)</TILES>
-     <SENSOR_PHASE>"Sensor phase adjusment, packed, low 16 bit - signed fine phase, bits [18:17] - 90-degrees shift"</SENSOR_PHASE>
+     <SENSOR_PHASE>"Sensor port signals phase coarse: [1:0] - data 90 degree shift, [6,3:2] - HACT 90 degree (two periods), [5:4] - VACT 90 degree shift  </SENSOR_PHASE>
      <TEMPERATURE_PERIOD>"Period of sensor temperature measurements, ms"</TEMPERATURE_PERIOD>
      <AUTOEXP_ON>"1 - autoexposure enabled when, 0 - autoexpousre disabled. Autoexposure can still be off if the bit responsible for autoexposure daemon in DAEMON_EN is turned off - in the latter case the whole autoexposure daemon will be disabled, including white balancing and hdr mode also."</AUTOEXP_ON>
      <HISTWND_RWIDTH>"Histogram (used for autoexposure, white balancing and just histograms display) window width, relative to the window (WOI) width. It is defined as a fraction of 65536(0x10000), so 0x8000 is 50%"</HISTWND_RWIDTH>
@@ -3475,8 +3476,8 @@ DEFAULT_CONFIG
      <MULTI_FLIPV> $MULTI_FLIPV</MULTI_FLIPV>
      <MULTI_SELECTED>$MULTI_SELECTED</MULTI_SELECTED>
      
-<!--     <SENSOR_PHASE>$SENSOR_PHASE</SENSOR_PHASE>
-     <MULTI_PHASE1>$MULTI_PHASE1</MULTI_PHASE1>
+     <SENSOR_PHASE>$SENSOR_PHASE</SENSOR_PHASE>
+<!-- <MULTI_PHASE1>$MULTI_PHASE1</MULTI_PHASE1>
      <MULTI_PHASE2>$MULTI_PHASE2</MULTI_PHASE2>
      <MULTI_PHASE3>$MULTI_PHASE3</MULTI_PHASE3> -->
      		
