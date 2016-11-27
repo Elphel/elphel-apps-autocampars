@@ -2439,6 +2439,8 @@ function createDefaultConfig($version, $port, $multisensor = false, $eyesis_mode
 	$DAEMON_EN_TEMPERATURE = ($eyesis_mode > 100) ? 1 : 0; // or enable it for all?
 	                                               
 	// / Default parameters to be overwritten by particular applications
+	$FLIPH = 0;
+	$FLIPV = 0;
 	$MULTI_FLIPH = 0;
 	$MULTI_FLIPV = 0;
 	$MULTI_SELECTED = 1;
@@ -2448,7 +2450,7 @@ function createDefaultConfig($version, $port, $multisensor = false, $eyesis_mode
 	$HISTWND_RTOP = 0x8000;
 	$COLOR = 0;
 	$SENSOR_PHASE =  $multisensor ? 0x55 : 0x15;
-	
+	log_msg("multisensor=".$multisensor.", SENSOR_PHASE=".$SENSOR_PHASE);
 	switch ($eyesis_mode) {
 		case 1 :
 			$MULTI_FLIPH = 0;
@@ -2521,7 +2523,7 @@ function createDefaultConfig($version, $port, $multisensor = false, $eyesis_mode
 			switch ($port) {
 				case 0 :
 					$MULTI_FLIPH = 0;
-					$MULTI_FLIPV = 3;
+					$MULTI_FLIPV = 4;
 					$MULTI_SELECTED = 1;
 					$HISTWND_RWIDTH = 0xc000;
 					$HISTWND_RHEIGHT = 0xffff;
@@ -2551,7 +2553,7 @@ function createDefaultConfig($version, $port, $multisensor = false, $eyesis_mode
 					break;
 				case 3 :
 					$MULTI_FLIPH = 0;
-					$MULTI_FLIPV = 3;
+					$MULTI_FLIPV = 4;
 					$MULTI_SELECTED = 1;
 					$HISTWND_RWIDTH = 0xc000;
 					$HISTWND_RHEIGHT = 0xffff;
@@ -2565,7 +2567,7 @@ function createDefaultConfig($version, $port, $multisensor = false, $eyesis_mode
 			switch ($port) {
 				case 0 :
 					$MULTI_FLIPH = 0;
-					$MULTI_FLIPV = 3;
+					$MULTI_FLIPV = 4;
 					$MULTI_SELECTED = 1;
 					$HISTWND_RWIDTH = 0xc000;
 					$HISTWND_RHEIGHT = 0xffff;
@@ -2595,7 +2597,7 @@ function createDefaultConfig($version, $port, $multisensor = false, $eyesis_mode
 					break;
 				case 3 :
 					$MULTI_FLIPH = 0;
-					$MULTI_FLIPV = 3;
+					$MULTI_FLIPV = 4;
 					$MULTI_SELECTED = 1;
 					$HISTWND_RWIDTH = 0xc000;
 					$HISTWND_RHEIGHT = 0xffff;
@@ -2629,6 +2631,7 @@ function createDefaultConfig($version, $port, $multisensor = false, $eyesis_mode
 			break;
 		log_msg ("**** ERROR: Invalid eyesis_mode value: $eyesis_mode");
 	}
+	
 	log_msg ("Generating default config for port $port, multiplexed= $multisensor eyesis_mode=$eyesis_mode");
 	log_msg (<<<PARAMS_SET
 	MULTI_FLIPH =     $MULTI_FLIPH
@@ -3133,7 +3136,7 @@ DEFAULT_CONFIG
      <DGAINB>"init,vignet"</DGAINB>
      <CORING_PAGE>"init,image"</CORING_PAGE>
      <TILES></TILES>
-     <SENSOR_PHASE>"unsafe,diagn"</SENSOR_PHASE>
+     <SENSOR_PHASE>"init,diagn"</SENSOR_PHASE>
      <TEMPERATURE_PERIOD>"init,diagn"</TEMPERATURE_PERIOD>
      <AUTOEXP_ON>"init,autoexposure"</AUTOEXP_ON>
      <HISTWND_RWIDTH>"init,histWnd"</HISTWND_RWIDTH>
@@ -3336,8 +3339,8 @@ DEFAULT_CONFIG
      <WOI_TOP>0</WOI_TOP>
      <WOI_WIDTH>10000</WOI_WIDTH>
      <WOI_HEIGHT>10000</WOI_HEIGHT>
-     <FLIPH>0</FLIPH>
-     <FLIPV>0</FLIPV>
+     <FLIPH>$FLIPH</FLIPH>
+     <FLIPV>$FLIPV</FLIPV>
      <FPSFLAGS>0</FPSFLAGS>
      <DCM_HOR>1</DCM_HOR>
      <DCM_VERT>1</DCM_VERT>
@@ -3475,7 +3478,6 @@ DEFAULT_CONFIG
      <MULTI_FLIPH> $MULTI_FLIPH</MULTI_FLIPH>
      <MULTI_FLIPV> $MULTI_FLIPV</MULTI_FLIPV>
      <MULTI_SELECTED>$MULTI_SELECTED</MULTI_SELECTED>
-     
      <SENSOR_PHASE>$SENSOR_PHASE</SENSOR_PHASE>
 <!-- <MULTI_PHASE1>$MULTI_PHASE1</MULTI_PHASE1>
      <MULTI_PHASE2>$MULTI_PHASE2</MULTI_PHASE2>
