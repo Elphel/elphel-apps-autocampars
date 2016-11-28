@@ -266,7 +266,10 @@ log_open();
 
 get_application_mode(); // initializes state file, sets $GLOBALS['init'] and $GLOBALS['camera_state_arr']['state']=='REBOOT' from both command line and $_GET
 
-
+if (isset($_GET['cancel_sync'])){
+	exec('overlay_sync 0');
+	respond_xml("overlay_sync 0","");
+}
 
 if (! in_array ( $GLOBALS['camera_state_arr']['state'], array_keys($GLOBALS['STOP_AFTER']) )) {
 	respond_xml($GLOBALS['camera_state_arr']['state']," Invalid state, valid are: ". implode(',',array_keys($GLOBALS['STOP_AFTER']))); // will exit with error
@@ -372,7 +375,7 @@ foreach ( $GLOBALS['ports'] as $port ) {
 		fclose ( $confFile );
 		log_msg ( "port $port: autocampars.php created a new configuration file $configPath from defaults." . ($multisensor ? "This port is multiplexed":""). ($GLOBALS['camera_state_arr']['is_eyesis']  ? (' Used Eyesis mode, camera ' . $GLOBALS['camera_state_arr']['mode']? : ' Used multisensor mode.') : '') );\
 		createConfigLink($port);
-		exec ( 'sync' );
+		exec ( 'sync; overlay_sync 1' );
 	}
 	$GLOBALS ['configs'] [$port] = parseConfig($GLOBALS['configDir'].'/'.$GLOBALS['configPaths'] [$port] );
 	log_msg ( "autocampars.php parsed configuration file {$GLOBALS['configDir']}/{$GLOBALS['configPaths'] [$port]}.");
@@ -1556,7 +1559,12 @@ function wait_slaves_boot($retries){
 
 function reboot_me(){
 	if (array_key_exists ( 'reboot', $_GET )) {
-		printf ( "<?xml version=\"1.0\"?><root><reboot>Rebooting standalone camera...</reboot></root>\n" );
+		// TODO: change the response to respond_xml()
+		$rslt = "<?xml version=\"1.0\"?><root><reboot>Rebooting standalone camera...</reboot></root>\n";
+		header("Content-Type: text/xml");
+		header("Content-Length: ".strlen($rslt)."\n");
+		header("Pragma: no-cache\n");
+		printf($rslt);
 	}
 	log_msg('running autocampars.py [localhost] pyCmd reboot');
 	exec ( 'autocampars.py [localhost] pyCmd reboot', $output, $retval );
@@ -1787,6 +1795,8 @@ function startPage($page_title, $javascript) {
 	                                                        
 	// [REQUEST_URI] => /autocampars.php?new
 	
+	$btns_table = getButtonsTable();
+	
 	echo <<<HEAD
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
                       "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
@@ -1800,6 +1810,7 @@ $javascript
 </script>
 </head>
 <body onload='updateLink()'>
+$btns_table
 <form action="$url" method="post">
 HEAD;
 	/*
@@ -1813,6 +1824,19 @@ HEAD;
 function endPage() {
 	echo "\n</form></body></html>\n";
 }
+
+function getButtonsTable(){
+	$str  = "<table border='0' style='font-family: Courier, monospace;'>\n";
+	$str .= "<tr>\n";
+	if ($GLOBALS['camera_state_arr']['is_master']){
+		$str .= "<td style='padding:0px 5px 5px 0px;'><button onclick='reboot_system()' title='reboot camera(s)'><b>REBOOT</b></button></td>\n";
+	}
+	$str .= "<td style='padding:0px 5px 5px 0px;'><button onclick='cancel_sync()' title='cancel sync - when booted from NAND flash the changes will not be saved'><b>CANCEL</b> sync</button></td>\n";
+	$str .= "<td id='btn_response' style='padding:0px 5px 5px 0px;'></td>\n";
+	$str .= "</tr>\n";
+	$str .= "</table>\n";
+	return $str;
+} 
 
 function writeGroupsTable($sensor_port) {
 	printf ( "<table border='1' style='font-family: Courier, monospace;'>\n" );
@@ -1880,6 +1904,7 @@ function writePagesTable($sensor_port) {
 	printf ( "</table>\n" );
 }
 function mainJavascript($sensor_port) {
+	$thisname = basename($_SERVER['SCRIPT_NAME']);
 	$checkboxNumbers = "";
 	foreach ( $GLOBALS['configs'][$sensor_port]['groupBits'] as $name => $bit ) {
 		$checkboxNumbers .= $bit . ",";
@@ -1941,6 +1966,47 @@ function updateLink() {
     document.getElementById('id_editLink').href+="&"+selectedPars[i];
   }
 }
+
+function reboot_system(){
+  console.log("reboot the system");
+  send_request("$thisname?reboot",parse_response);
+}
+
+function cancel_sync(){
+  console.log("cancel sync");
+  send_request("$thisname?cancel_sync",parse_response);
+}
+
+function parse_response(resp){
+  var result = "";
+  console.log(resp);
+  if (resp.getElementsByTagName("result").length!=0){
+  	result = resp.getElementsByTagName("result")[0].childNodes[0].nodeValue;
+  }else if (resp.getElementsByTagName("reboot").length!=0){
+  	result = resp.getElementsByTagName("reboot")[0].childNodes[0].nodeValue;
+  }else if (resp.getElementsByTagName("error").length!=0){		
+    result = resp.getElementsByTagName("error")[0].childNodes[0].nodeValue;
+  }else{
+  	result = "Error";
+  }
+  document.getElementById("btn_response").innerHTML = result;
+}
+  		
+function send_request(rq,callback){
+  var request = new XMLHttpRequest();
+  request.open('GET', rq, true);
+  request.onreadystatechange = function() {
+    if (this.readyState == 4 && this.status == 200) {      
+      var resp = this.responseXML;
+  	  callback(resp);
+    }
+  };
+  request.onerror = function() {
+    console.log("request error");
+  };
+  request.send();
+}
+
 JAVASCRIPT;
 }
 
@@ -2074,7 +2140,7 @@ function saveRotateConfig($sensor_port, $numBackups) {
 	fwrite ( $confFile, encodeConfig ( $GLOBALS['configs'][$sensor_port] ) );
 	fclose ( $confFile );
 	createConfigLink($sensor_port);
-	exec ( 'sync' );
+	exec ( 'sync; overlay_sync 1' );
 }
 
 function createConfigLink($sensor_port){
