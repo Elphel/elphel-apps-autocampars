@@ -2029,7 +2029,7 @@ JAVASCRIPT;
 function addGammas($mpars) { // common to all channels
 	foreach ($mpars as $p){
 		if (!is_array($p)){
-			$pars=array($pars);
+			$mpars=array($mpars);
 		}
 		break;
 	}
@@ -2045,6 +2045,8 @@ function addGammas($mpars) { // common to all channels
 			$gammas [$pars ['GTAB_B'] >> 16] = 1;
 	}
 		// var_dump($gammas);
+	log_msg('Collected gammas == '. print_r($gammas,1));
+	
 	foreach ( $gammas as $gamma_black => $whatever ) {
 		$black = ($gamma_black >> 8) & 0xff;
 		$gamma = ($gamma_black & 0xff) * 0.01;
@@ -2104,17 +2106,17 @@ log_msg("setParsFromPage($sensor_port, $page, $mask)");
 		$page = $GLOBALS['configs'][$sensor_port]['defaultPage'];
 	}
 	$parToSet = array ();
-	log_msg("page = $page");
+	log_msg("setParsFromPage($sensor_port, $page, $mask");
 	foreach ( $GLOBALS ['configs'][$sensor_port] ['groups'] as $par => $parMask ) {
 		if (($mask & $parMask) &&
 				array_key_exists ( $par, $GLOBALS ['configs'] [$sensor_port] ['paramSets'] [$page] ) &&
 				(! $GLOBALS ['configs'] [$sensor_port] ['parTypes'] [$par])) // / not 'text'
 			$parToSet [$par] = myval ( $GLOBALS ['configs'] [$sensor_port] ['paramSets'] [$page] [$par] );
-		log_msg(print_r($parToSet,1));
+//		log_msg( __LINE__.': par='.$par.", parMask=".parMask.", parToSet=". print_r($parToSet,1));
 	}
-	// /NOTE: Important ; add gamma tables if parameters modified involve setting/chnaging them
-	addGammas ( $parToSet );
-	log_msg('$parToSet == '. print_r($parToSet,1));
+	// /NOTE: Important ; add gamma tables if parameters modified involve setting/changing them
+//	log_msg('before gamma: parToSet == '. print_r($parToSet,1));
+	addGammas ($parToSet );
 	elphel_set_P_arr  ( $sensor_port, $parToSet );
 	return $page;
 }
@@ -2518,7 +2520,7 @@ function createDefaultConfig($version, $port, $multisensor = false, $eyesis_mode
 	$CORING_INDEX = $eyesis_mode ? 0x140014 : 0x50005;
 	$PORTRAIT = $eyesis_mode ? 1 : 0;
 	$AUTOEXP_EXP_MAX = $eyesis_mode ? 1000 : 500000;
-	$AEXP_FRACPIX = $eyesis_mode ? 0xf333 : 0xff80; // 95% : 99.8%
+	$AEXP_FRACPIX = $eyesis_mode ? 0xf333 : 0xfdf3; // 99.2% - sometimes 99.8% is unstable WB 0xff80; // 95% : 99.8%
 	$AEXP_LEVEL = $eyesis_mode ? 0xc800 : 0xf800; // 200 : 250
 	$DAEMON_EN_TEMPERATURE = ($eyesis_mode > 100) ? 1 : 0; // or enable it for all?
 	                                               
