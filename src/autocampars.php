@@ -266,9 +266,19 @@ log_open();
 
 get_application_mode(); // initializes state file, sets $GLOBALS['init'] and $GLOBALS['camera_state_arr']['state']=='REBOOT' from both command line and $_GET
 
+// Add sensor port if it is not specified but only one exists
+if (($GLOBALS ['sensor_port'] <0) && (count($GLOBALS['ports'])==1)){
+	$GLOBALS ['sensor_port'] = $GLOBALS['ports'][0];
+}
+
+// Processing HTTP GET parameters that do not need any other camera activity
 if (isset($_GET['cancel_sync'])){
 	exec('overlay_sync 0');
 	respond_xml("overlay_sync 0","");
+}
+if (isset($_GET['log'])){
+	print_log();
+	exit (0);
 }
 
 if (! in_array ( $GLOBALS['camera_state_arr']['state'], array_keys($GLOBALS['STOP_AFTER']) )) {
@@ -1750,10 +1760,25 @@ function processGet($port) {
 //	if ($GLOBALS['sensor_port']<0){
 	if ($port<0){
 		$warn = <<<WARN_PORT
-<center><h4>Sensor port (sensor_port) is not specified</h4></center>
-<p>Only one sensor port parameters can be edited currently. You may add
-'sensor_port=value' to the request URL to fix this problem.</p>
+<p>Sensor port (sensor_port parameter) is not specified</p>
+<p>Only one sensor port parameters can be edited. Below are the links to the individual camera ports parameters.</p>
+<p/>
 WARN_PORT;
+//		log_msg('$GLOBALS='.print_r($GLOBALS,1));
+//		log_msg('$_SERVER='.print_r($_SERVER,1));
+//		log_msg('REQUEST_URI='.$_SERVER['REQUEST_URI']);
+		
+		foreach ( $GLOBALS['ports'] as $port ) {
+			$link = $_SERVER[ 'REQUEST_URI'];
+			if (strstr($link,'?')) $link .='&';
+			else  $link .='?';
+			$link .= 'sensor_port='.$port;
+			$warn .="<p>Port ".$port.": <a href = \"$link\">$link</a></p>\n";
+		}
+		$link = $_SERVER[ 'REQUEST_URI'];
+		if (strstr($link,'?')) $link = substr($link,0,strpos($link,'?'));
+		$link .= "?log";
+		$warn .="<br/><p>autocampars.php log file: <a href = \"$link\">$link</a></p>\n";
 		echo $warn;
 		endPage ();
 		log_close();
@@ -1784,7 +1809,74 @@ WARN;
 		log_close();
 		exit ( 1 );
 	}
-	
+/*
+ * 
+ * 
+    [_SERVER] => Array
+        (
+            [CONSOLE] => /dev/console
+            [SHELL] => /bin/sh
+            [TERM] => linux
+            [INIT_VERSION] => sysvinit-2.88
+            [COLUMNS] => 80
+            [PATH] => /sbin:/bin:/usr/sbin:/usr/bin
+            [runlevel] => 5
+            [RUNLEVEL] => 5
+            [PWD] => /
+            [VERBOSE] => no
+            [previous] => N
+            [PREVLEVEL] => N
+            [LINES] => 24
+            [HOME] => /
+            [SHLVL] => 4
+            [_] => /usr/sbin/lighttpd
+            [PHP_FCGI_CHILDREN] => 1
+            [HTTP_ACCEPT_LANGUAGE] => en-US,en;q=0.8
+            [HTTP_ACCEPT_ENCODING] => gzip, deflate, sdch
+            [HTTP_ACCEPT] => text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,* /*;q=0.8
+            [HTTP_USER_AGENT] => Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/54.0.2840.100 Safari/537.36
+            [HTTP_UPGRADE_INSECURE_REQUESTS] => 1
+            [HTTP_CACHE_CONTROL] => max-age=0
+            [HTTP_CONNECTION] => keep-alive
+            [HTTP_HOST] => 192.168.0.5
+            [SERVER_PROTOCOL] => HTTP/1.1
+            [REDIRECT_STATUS] => 200
+            [REQUEST_METHOD] => GET
+            [QUERY_STRING] => new
+            [REQUEST_URI] => /autocampars.php?new
+            [DOCUMENT_ROOT] => /www/pages
+            [SCRIPT_FILENAME] => /www/pages/autocampars.php
+            [PATH_INFO] => 
+            [SCRIPT_NAME] => /autocampars.php
+            [REMOTE_ADDR] => 192.168.0.210
+            [REMOTE_PORT] => 36054
+            [SERVER_ADDR] => 192.168.0.5
+            [SERVER_PORT] => 80
+            [GATEWAY_INTERFACE] => CGI/1.1
+            [SERVER_NAME] => 192.168.0.5
+            [SERVER_SOFTWARE] => lighttpd/1.4.39
+            [FCGI_ROLE] => RESPONDER
+            [PHP_SELF] => /autocampars.php
+            [REQUEST_TIME_FLOAT] => 1480466694.6114
+            [REQUEST_TIME] => 1480466694
+            [argv] => Array
+                (
+                    [0] => new
+                )
+
+            [argc] => 1
+        )
+* 
+              'REQUEST_URI': '/autocampars.py?a=1&b&c=2',
+* 
+ 	foreach ( $GLOBALS['ports'] as $port ) {
+		log_msg ("Rotating configs for port $port");
+		if (file_exists ($GLOBALS['configDir'].'/'.$GLOBALS['configPaths'][$port])) {
+			rotateConfig ($port, $GLOBALS['numBackups'] );
+		}
+	}
+
+ */	
 	
 	$page_title = "Model 393 Camera Parameters save/restore, sensor port {$port}";
 	startPage ( $page_title, mainJavascript ($port) );
@@ -1801,6 +1893,25 @@ WARN;
 	endPage ();
 }
 
+function print_log(){
+	log_close();
+	$log = file_get_contents($GLOBALS['logFilePath']);
+	echo <<<PAGE
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+                      "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+<title>{$GLOBALS['logFilePath']}</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+</head>
+<body><pre>
+$log
+</pre>
+</body>
+</html>
+PAGE;
+	
+}
 function startPage($page_title, $javascript) {
 	$url = str_replace ( 'new', 'same', $_SERVER ['REQUEST_URI'] ); // / form will remove "new" when submitting
 	                                                        
