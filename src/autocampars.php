@@ -1761,7 +1761,7 @@ function processGet($port) {
 	if ($port<0){
 		$warn = <<<WARN_PORT
 <p>Sensor port (sensor_port parameter) is not specified</p>
-<p>Only one sensor port parameters can be edited. Below are the links to the individual camera ports parameters.</p>
+<p>Parameters for only one sensor can be edited with this program. Below are the links to the individual camera ports parameters.</p>
 <p/>
 WARN_PORT;
 //		log_msg('$GLOBALS='.print_r($GLOBALS,1));
