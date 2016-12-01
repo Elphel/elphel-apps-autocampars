@@ -1758,24 +1758,41 @@ function processPost($port) {
 function processGet($port) {
 	/** NOT YET PORTED */
 //	if ($GLOBALS['sensor_port']<0){
-	if ($port<0){
+	if (($port<0) || !in_array($port,$GLOBALS['ports'])){
+		if ($port<0) {
 		$warn = <<<WARN_PORT
 <p>Sensor port (sensor_port parameter) is not specified</p>
 <p>Parameters for only one camera sensor port can be edited with this program. Below are the links to the individual camera ports parameters.</p>
 <p/>
 WARN_PORT;
+		} else {
+			$warn = <<<WARN_PORT
+<p>Sensor port $port does not exit (or is disabled) in this camera.</p>
+<p>Below are the links to the existing camera ports parameters.</p>
+<p/>
+WARN_PORT;
+			}
 //		log_msg('$GLOBALS='.print_r($GLOBALS,1));
 //		log_msg('$_SERVER='.print_r($_SERVER,1));
 //		log_msg('REQUEST_URI='.$_SERVER['REQUEST_URI']);
-		
+		$uri = $_SERVER[ 'REQUEST_URI'];
+		while (strstr($uri,'sensor_port=')){ // remove existing sensor_port parameter from URI
+			$sens_pos = strpos($uri,'sensor_port=');
+			$next_pos = strpos($uri,'&',$sens_pos);
+			if ($next_pos !== FALSE){
+				$uri = substr($uri,0,$sens_pos).substr($uri, $next_pos+1);
+			} else {
+				$uri = substr($uri,0,$sens_pos-1);
+			}
+		}
 		foreach ( $GLOBALS['ports'] as $port ) {
-			$link = $_SERVER[ 'REQUEST_URI'];
+			$link = $uri;
 			if (strstr($link,'?')) $link .='&';
 			else  $link .='?';
 			$link .= 'sensor_port='.$port;
 			$warn .="<p>Port ".$port.": <a href = \"$link\">$link</a></p>\n";
 		}
-		$link = $_SERVER[ 'REQUEST_URI'];
+		$link = $uri;
 		if (strstr($link,'?')) $link = substr($link,0,strpos($link,'?'));
 		$link .= "?log";
 		$warn .="<br/><p>autocampars.php log file: <a href = \"$link\">$link</a></p>\n";
@@ -1805,6 +1822,7 @@ Config file ({$GLOBALS['configDir']}/{$GLOBALS['configPaths'][$port]}): <b>{$GLO
 </ol>
 WARN;
 		echo $warn;
+		echo "<pre>\n".print_r($GLOBALS['ports'],1)."\n</pre>";
 		endPage ();
 		log_close();
 		exit ( 1 );
