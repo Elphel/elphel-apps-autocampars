@@ -2816,6 +2816,7 @@ function createDefaultConfig($version, $port, $multisensor = false, $eyesis_mode
 					$TRIG_MASTER = 2;
 					break;
 				case 3 :
+					$FLIPV = 1;
 					$MULTI_SELECTED = 0;
 					$HISTWND_RWIDTH = 0xc000;
 					$HISTWND_RHEIGHT = 0xffff;
