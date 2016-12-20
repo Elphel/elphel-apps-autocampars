@@ -437,9 +437,9 @@ Other functionality (parameters save/restore is provided when this script is cal
 in that case command is read from the AUTOCAMPARS_* parameter.
 
 Configuration files are here:
-$configs 		
-
 USAGE;
+
+		print_r($configs);
 	// === end of any command-line mode execution ex cept --init and --daemon
 		log_close();
 		exit ( 0 );
