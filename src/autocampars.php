@@ -431,7 +431,7 @@ if (($_SERVER ['REQUEST_METHOD'] == "GET") && ! ($GLOBALS['init'])) { // in init
 		echo <<<USAGE
 
 Usage: {$_SERVER['argv'][0]} [--init] [--new] [--ignore-revision]
-Initialise camdera using saved parameters (usually at boot),
+Initialize camera using saved parameters (usually at boot),
 
 Other functionality (parameters save/restore is provided when this script is called from the daemon,
 in that case command is read from the AUTOCAMPARS_* parameter.
