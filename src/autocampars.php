@@ -427,7 +427,10 @@ if (($_SERVER ['REQUEST_METHOD'] == "GET") && ! ($GLOBALS['init'])) { // in init
 		}
 	}
 	if (! $GLOBALS['daemon'] && ! $GLOBALS['init']) {
-		$configs = print_r($GLOBALS['configDir'].'/'.$GLOBALS['configPaths'],1);
+		$configs = "";
+		foreach($GLOBALS['configPaths'] as $k){
+			$configs .= $GLOBALS['configDir']."/".$k."\n";
+		}
 		echo <<<USAGE
 
 Usage: {$_SERVER['argv'][0]} [--init] [--new] [--ignore-revision]
@@ -436,10 +439,10 @@ Initialize camera using saved parameters (usually at boot),
 Other functionality (parameters save/restore is provided when this script is called from the daemon,
 in that case command is read from the AUTOCAMPARS_* parameter.
 
-Configuration files are here:
-USAGE;
+Configuration files:
+$configs		
 
-		print_r($configs);
+USAGE;
 	// === end of any command-line mode execution ex cept --init and --daemon
 		log_close();
 		exit ( 0 );
