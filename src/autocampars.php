@@ -1342,7 +1342,14 @@ function get_application_mode() {
 		$EEPROM_chn = 2;
 		$EEPROM_bus0 = 5;
 		// This currently is slow
-		$xml = simplexml_load_string ( i2c_read256b ( 0xa0 + ($EEPROM_chn * 2), $EEPROM_bus0 ) ); // read contents of
+		$info_10389 = trim( i2c_read256b ( 0xa0 + ($EEPROM_chn * 2), $EEPROM_bus0 ) );
+		if ($info_10389!=""){
+			$xml = simplexml_load_string ( $info_10389 ); // read contents of
+		}else{
+			log_msg("10389 board is not present, loading default xml");
+			$xml = simplexml_load_string ( "<board><model>10389 not present</model><rev>B</rev><serial>F80000</serial><app>MT9P006</app><mode>15</mode></board>" );
+		}
+		
 		if ($xml === false) {
 			log_msg("10389 board not present");
 		} else {
