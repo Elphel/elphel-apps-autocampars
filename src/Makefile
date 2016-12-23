@@ -1,5 +1,6 @@
 LN = ln
 PROGS      = autocampars launch_php_script
+XMLS = default_10389.xml 
 #PHPSCRIPTS = autocampars.php
 PYSCRIPTS =  autocampars.py
 WWW_PAGES = /www/pages
@@ -40,6 +41,8 @@ install: $(PROGS) $(PHPSCRIPTS) $(PYSCRIPTS)
 	$(INSTALL) -d $(DESTDIR)$(WWW_PAGES)
 	$(INSTALL) -d $(DESTDIR)$(SYSCONFDIR)
 	$(INSTALL) -d $(DESTDIR)$(CONFDIR)
+	
+	$(INSTALL) $(OWN) -m $(INSTDOCS) $(XMLS) $(DESTDIR)$(CONFDIR)
 	$(INSTALL) $(OWN) -m $(INSTMODE) $(PROGS) $(DESTDIR)$(BINDIR)
 	$(INSTALL) $(OWN) -m $(INSTMODE) $(PYSCRIPTS) $(DESTDIR)$(BINDIR)
 #	$(INSTALL) $(OWN) -m $(INSTMODE) $(PHPSCRIPTS) $(DESTDIR)$(BINDIR)

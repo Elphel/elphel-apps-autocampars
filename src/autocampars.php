@@ -1346,8 +1346,8 @@ function get_application_mode() {
 		if ($info_10389!=""){
 			$xml = simplexml_load_string ( $info_10389 ); // read contents of
 		}else{
-			log_msg("10389 board is not present, loading default xml");
-			$xml = simplexml_load_string ( "<board><model>10389 not present</model><rev>B</rev><serial>F80000</serial><app>MT9P006</app><mode>15</mode></board>" );
+			log_msg("10389 board is not present, loading /etc/elphel393/default_10389.xml");
+			$xml = simplexml_load_string ( file_get_contents("/etc/elphel393/default_10389.xml") );
 		}
 		
 		if ($xml === false) {
