@@ -2629,9 +2629,6 @@ function curl_multi_finish($data, $use_xml=true, $ntry=0, $echo = false) {
 	return $results;
 }
 
-
-
-
 function createDefaultConfig($version, $port, $multisensor = false, $eyesis_mode = 0) { // / 0 - not eyesis, 1-3 - camera number
 	$SENSOR_RUN = ELPHEL_CONST_SENSOR_RUN_CONT; // / turn on sensor in continuous mode
 	$COMPRESSOR_RUN = ELPHEL_CONST_COMPRESSOR_RUN_CONT; // / run compressor in continuous mode
@@ -2675,6 +2672,23 @@ function createDefaultConfig($version, $port, $multisensor = false, $eyesis_mode
 	$HISTWND_RTOP = 0x8000;
 	$COLOR = 0;
 	$SENSOR_PHASE =  $multisensor ? 0x55 : 0x15;
+	
+	/*
+	* if ($GLOBALS['camera_state_arr']['application']=="Eyesis4pi393"){ //get_eyesis_mode
+	*   $GLOBALS['camera_state_arr']['is_eyesis'] = 1;
+	* }
+	*
+	* $eyesis_mode = $GLOBALS['camera_state_arr']['is_eyesis']?$GLOBALS['camera_state_arr']['mode']:0;
+	*/
+	$mode = intval($GLOBALS['camera_state_arr']['mode']);
+	if (!$eyesis_mode){
+		switch($mode){
+			case 15:
+				$TRIG_MASTER = $GLOBALS['master_port'];
+				break;
+		}
+	}
+	
 	log_msg("multisensor=".$multisensor.", SENSOR_PHASE=".$SENSOR_PHASE);
 	switch ($eyesis_mode) {
 		case 1 :
@@ -2859,24 +2873,21 @@ function createDefaultConfig($version, $port, $multisensor = false, $eyesis_mode
 	}
 	
 	log_msg ("Generating default config for port $port, multiplexed= $multisensor eyesis_mode=$eyesis_mode");
-	log_msg (<<<PARAMS_SET
-	MULTI_FLIPH =     $MULTI_FLIPH
-	MULTI_FLIPV =     $MULTI_FLIPV
-	MULTI_SELECTED =  $MULTI_SELECTED
-	HISTWND_RWIDTH =  $HISTWND_RWIDTH
-	HISTWND_RHEIGHT = $HISTWND_RHEIGHT
-	HISTWND_RLEFT =   $HISTWND_RLEFT
-	HISTWND_RTOP =    $HISTWND_RTOP
-	COLOR =           $COLOR
-	TRIG_MASTER =     $TRIG_MASTER
-	TRIG =            $TRIG
-	TRIG_PERIOD =     $TRIG_PERIOD
-	TRIG_CONDITION =  $TRIG_CONDITION
-	TRIG_OUT =        $TRIG_OUT
-	MULTI_MODE =      $MULTI_MODE
-	TRIG_MASTER =     $TRIG_MASTER		
-PARAMS_SET
-);
+	
+	log_msg ("MULTI_FLIPH =     $MULTI_FLIPH");
+	log_msg ("MULTI_FLIPV =     $MULTI_FLIPV");
+	log_msg ("MULTI_SELECTED =  $MULTI_SELECTED");
+	log_msg ("HISTWND_RWIDTH =  $HISTWND_RWIDTH");
+	log_msg ("HISTWND_RHEIGHT = $HISTWND_RHEIGHT");
+	log_msg ("HISTWND_RLEFT =   $HISTWND_RLEFT");
+	log_msg ("HISTWND_RTOP =    $HISTWND_RTOP");
+	log_msg ("COLOR =           $COLOR");
+	log_msg ("TRIG_MASTER =     $TRIG_MASTER");
+	log_msg ("TRIG =            $TRIG");
+	log_msg ("TRIG_PERIOD =     $TRIG_PERIOD");
+	log_msg ("TRIG_CONDITION =  $TRIG_CONDITION");
+	log_msg ("TRIG_OUT =        $TRIG_OUT");
+	log_msg ("MULTI_MODE =      $MULTI_MODE");
 	
 /*
 	return <<<DEFAULT_CONFIG
