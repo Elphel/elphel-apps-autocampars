@@ -168,7 +168,7 @@
 
   Revision 1.5  2008/11/20 04:00:33  elphel
   trying CVS log as PHP string
-  
+
   Revision 1.4  2008/11/18 19:31:04  elphel
   implemented initialization mode (used at boot time)
 
@@ -189,7 +189,7 @@ date_default_timezone_set('UTC');
 $GLOBALS['VERSION'] = '___VERSION___';
 $GLOBALS['SRCREV'] =  '___SRCREV___';
 $GLOBALS['LOG_MAX_ECHO'] = 100; //longest log message to be output to screen, not only logged
-$GLOBALS['BOOT_RETRIES'] = 10;  //How many times to read status from two slaves until giving up 
+$GLOBALS['BOOT_RETRIES'] = 10;  //How many times to read status from two slaves until giving up
 $GLOBALS['STOP_AFTER']=array(
         'REBOOT'   =>           true, // this state causes reboot of this camera, or if it is a master - all slaves too
 		'BOOT'     =>           true,
@@ -212,7 +212,7 @@ $GLOBALS['twoColumns'] = false;
 $logFilePath = "/var/log/autocampars.log";
 $GLOBALS['sysfs_detect_sensors'] = '/sys/devices/soc0/elphel393-detect_sensors@0'; // /sensor00
 $GLOBALS['sysfs_frame_seq'] =      '/sys/devices/soc0/elphel393-framepars@0/this_frame'; //[0..3] 0 (write <16 will reset the hardware sequencer)
-$GLOBALS['sysfs_chn_en'] =         '/sys/devices/soc0/elphel393-framepars@0/chn_en'; //channels enable (to blocks frame sync pulses) 
+$GLOBALS['sysfs_chn_en'] =         '/sys/devices/soc0/elphel393-framepars@0/chn_en'; //channels enable (to blocks frame sync pulses)
 $GLOBALS['sysfs_i2c_seq'] =        '/sys/devices/soc0/elphel393-sensor-i2c@0/i2c_frame';
 $GLOBALS ['sensor_port'] = -1; // not specified
 $GLOBALS['master_port'] = -1;  // Master port is the lowest number of existing ports
@@ -228,20 +228,20 @@ $GLOBALS['configPaths'] = array (
 		"autocampars0.xml", // should be a single line for parsedit.php
 		"autocampars1.xml",
 		"autocampars2.xml",
-		"autocampars3.xml" 
+		"autocampars3.xml"
 );
 $GLOBALS['backupConfigPaths'] = array (
 		"autocampars0.xml.backup",
 		"autocampars1.xml.backup",
 		"autocampars2.xml.backup",
-		"autocampars3.xml.backup" 
+		"autocampars3.xml.backup"
 );
 // FIXME: NC393 - use sysfs to read 10359 and sensor configuration
 $GLOBALS['m10359Paths'] = array (
 		"/var/volatile/state/10359.0",
 		"/var/volatile/state/10359.1",
 		"/var/volatile/state/10359.2",
-		"/var/volatile/state/10359.3" 
+		"/var/volatile/state/10359.3"
 ); // / used to select multisensor defaults
 
 $GLOBALS['camera_state_path'] = "/var/volatile/state/camera";
@@ -249,13 +249,13 @@ $GLOBALS['camera_state_path'] = "/var/volatile/state/camera";
 		"/var/volatile/state/ctype.0",
 		"/var/volatile/state/ctype.1",
 		"/var/volatile/state/ctype.2",
-		"/var/volatile/state/ctype.3" 
+		"/var/volatile/state/ctype.3"
 );*/
 $GLOBALS['framepars_paths'] = array (
 		"/dev/frameparsall0",
 		"/dev/frameparsall1",
 		"/dev/frameparsall2",
-		"/dev/frameparsall3" 
+		"/dev/frameparsall3"
 );
 $GLOBALS['configs'] = array();
 $GLOBALS['init'] = false;
@@ -440,7 +440,7 @@ Other functionality (parameters save/restore is provided when this script is cal
 in that case command is read from the AUTOCAMPARS_* parameter.
 
 Configuration files:
-$configs		
+$configs
 
 USAGE;
 	// === end of any command-line mode execution ex cept --init and --daemon
@@ -463,7 +463,7 @@ Script ({$_SERVER['argv'][0]}):{$GLOBALS['version']}.
 Config file ({$GLOBALS['configDir']}/{$GLOBALS['configPaths'][$port]}): {$old_version}
 WARN;
 if ($severity=="WARNING") {
-	$warn .= "\nUpdating as '--ignore-revision' is set."; 
+	$warn .= "\nUpdating as '--ignore-revision' is set.";
 } else {
 	$warn .= <<<WARN
 This may (or may not) cause errors. You have several options:
@@ -493,7 +493,7 @@ if ($GLOBALS['init']) {
 	} else {
 		respond_xml('', "Can not initialize Unknown camera type.".print_r($GLOBALS['camera_state_arr'],1));
 	}
-	
+
 	if ($GLOBALS['camera_state_arr']['state'] != 'INITIALIZED') {
 		log_msg ( "Camera failed to initialize, see $logFilePath for detailes" );
 		log_msg ( "Camera state = ".$GLOBALS['camera_state_arr']['state'] );
@@ -506,7 +506,7 @@ if ($GLOBALS['init']) {
 	if ($GLOBALS ['version'] != $GLOBALS ['configs'] [$port] ['version']) {
 		respond_xml($GLOBALS['camera_state_arr']['state'],'revisions differ'); // will exit
 	}
-	
+
 	respond_xml($GLOBALS['camera_state_arr']['state']); // will exit no error, providing current state as response (normally it is 'INITIALIZED'
 }
 
@@ -525,7 +525,7 @@ function update_minor_version($port, $silent = 0) {
 	if ($GLOBALS ['configs'] [$port] ['version'] != $GLOBALS ['version']) {
 		if (substr ( $GLOBALS ['configs'] [$port] ['version'], 0, strrpos ( $GLOBALS ['configs'] [$port] ['version'], '.' ) ) ==
 				substr ( $GLOBALS ['version'], 0, strrpos ( $GLOBALS ['version'], '.' ) )) {
-			if (!$silent) {		
+			if (!$silent) {
 				log_msg ( "WARNING: updating minor mismatch version for port $port: " .
 						$GLOBALS ['configs'] [$port] ['version'] . " to " . $GLOBALS ['version'], 4);
 			}
@@ -569,7 +569,7 @@ function reset_camera(){
 				log_msg("Current frame on master port =" . elphel_get_frame ( $GLOBALS ['master_port'] ) . ", waking up, daemons should be dead already");
 			}
 			log_msg("after reset - current frame on master port =" . elphel_get_frame ( $GLOBALS ['master_port'] ));
-			
+
 			// Stop compressor if it was running (daemons are already stopped)
 			if (elphel_get_P_value ( $port, ELPHEL_COMPRESSOR_RUN ) || elphel_get_P_value ( $port, ELPHEL_DAEMON_EN )) {
 				$frame_to_set += ELPHEL_CONST_FRAME_DEAFAULT_AHEAD;
@@ -586,7 +586,7 @@ function reset_camera(){
 					usleep ($GLOBALS['camera_state_arr']['max_frame_time']); // > 1 frame, so all channels will get trigger parameters? 3 2 2 1 -> 4 3 3 2
 				}
 			}
-			
+
 			$GLOBALS['camera_state_arr']['state'] ='BITSTREAM';
 			write_php_ini ($GLOBALS['camera_state_arr'], $GLOBALS['camera_state_path'] );
 			log_msg("Reset camera state to ". $GLOBALS['camera_state_arr']['state']);
@@ -615,11 +615,11 @@ function detect_camera(){
 			log_msg("rebooting..."); // multicamera needs to determine and reboot slaves (if it is master
 		case 'BOOT':
 			log_msg("boot", 0);
-			
+
 			// Apply sensor mask from the application mode, update sysfs
 			$sensor_mask = get_application_mode (); // 20 bit - for each channel of each port and port multiplexers (typical Eyesis 0xf7777)
 			log_msg(sprintf("Using sensor mask 0x%x", $sensor_mask));
-				
+
 			$needupdate=0;
 			for($port = 0; $port < 4; $port++){
 				for ($chn = 0; $chn < 4; $chn++){
@@ -647,7 +647,7 @@ function detect_camera(){
 				log_msg("Sensors not disabled by the application mode (10389 EEPROM): ".str_sensors($GLOBALS['sensors'],1),1);
 				update_sysfs_sensors();
 			}
-			
+
 			// All eyesis cameras - disable fan control to re-use for 10359 power
 			if ($GLOBALS['camera_state_arr']['eyesis_power']){ // disable fan control, reuse it to control power
 				$rslt=set_eyesis_power_control();
@@ -661,22 +661,22 @@ function detect_camera(){
 				write_php_ini ($GLOBALS['camera_state_arr'], $GLOBALS['camera_state_path']);
 				log_msg ('Current state: ' . $GLOBALS['camera_state_arr']['state']);
 			}
-			
+
 			// Now IPs of slave cameras are know - reboot them (will exit anyway)
 			if ($GLOBALS['camera_state_arr']['state'] == 'REBOOT') {
 				reboot_all_if_master(); // will exit anyway (do nothing if not master), exit anyway
 			}
-			
+
 			// Done if it is slave
 			if ($GLOBALS['camera_state_arr']['is_slave']){
 				respond_xml('This is a slave camera - waiting for master to contol next steps','',4); // will exit(0)
 			}
-			
+
 			// Sanity check
 			if (!$GLOBALS['camera_state_arr']['is_master']){
 				respond_xml('', 'This is a neither slave, no master camera - waiting for master to contol next steps - aborting'); // will exit(1)
 			}
-			
+
 			log_msg("Continue with master camera");
 			log_msg("Setting FPGA and sensor power");
 
@@ -688,15 +688,15 @@ function detect_camera(){
 					break;
 				}
 			}
-			
+
 			// Camera-specific powering/loading FPGA bitstream (including 10359)
 			if ($GLOBALS['camera_state_arr']['is_eyesis']){
-	
+
 // TODO: convert to curl_multi?
 				eyesis_all_power_fpga ('hargs-power_par12');
 				eyesis_all_power_fpga ('hargs-power-eyesis');
 				eyesis_all_power_fpga ('hargs-post-par12');
-				
+
 				$ips_10359 = array ($GLOBALS['camera_state_arr']['ip_top'],$GLOBALS['camera_state_arr']['ip_middle']);
 				log_msg ("Loading 10359 bitstreams");
 
@@ -716,12 +716,12 @@ function detect_camera(){
 				write_php_ini ($GLOBALS['camera_state_arr'], $GLOBALS['camera_state_path'] );
 				log_msg("COMMAND_OUTPUT for 'autocampars.py localhost py393 hargs-power_par12':\n".
 						print_r($output,1)."\ncommand return value=".$retval."\n");
-				
+
 			} else {
 				respond_xml ('', 'Do not know how to initialize master camera '.primt_r($GLOBALS['camera_state_arr']['is_mt9p006'],1));
 			}
 			// can not exit until joined
-			
+
         case 'PRE10359': // Entry point for Eyesis slave cameras that have 10359B multiplexers on their ports
 			if ($GLOBALS['port_mux']) {
 				for($port = 0; $port < 4; $port++) {
@@ -732,7 +732,7 @@ function detect_camera(){
 					}
 				}
 			}
-            
+
             $GLOBALS['camera_state_arr']['state'] ='BITSTREAM';
             write_php_ini ($GLOBALS['camera_state_arr'], $GLOBALS['camera_state_path'] );
             if ($GLOBALS['camera_state_arr']['exit_stage'] == $GLOBALS['camera_state_arr']['state']){
@@ -741,9 +741,9 @@ function detect_camera(){
             if (!isset ($curl_data)){ // do not break if waiting for slaves
 	            if ($GLOBALS['STOP_AFTER'][$GLOBALS['camera_state_arr']['state']]) break;
             }
-            
+
 		case 'BITSTREAM':
-            // ***** Sensor detection stage is the same for all sensors so far, can be combined Eyesis/non-Eyesis  
+            // ***** Sensor detection stage is the same for all sensors so far, can be combined Eyesis/non-Eyesis
 			$frame_nums=array(-1,-1,-1,-1);
 			// Open files for only enabled channels
 			foreach ($GLOBALS['ports'] as $port) {
@@ -761,7 +761,7 @@ function detect_camera(){
 			log_msg("Sensor interface type: ".trim(file_get_contents('/sys/devices/soc0/elphel393-framepars@0/fpga_sensor_interface')), 3);
 			log_msg("All frames:\n"          .trim(file_get_contents('/sys/devices/soc0/elphel393-framepars@0/all_frames')),0);
 			log_msg('Frames: '. implode(", ",$frame_nums),0);
-				
+
 		    // detection process only removes, not adds channels. So device tree and 10389 should enable maximum possible
 			$needupdate=0;
 			foreach ($GLOBALS['ports'] as $port) {
@@ -781,7 +781,7 @@ function detect_camera(){
 								$needupdate = 1;
 							}
 						}
-						$channel_mask = 1;// no-mux sensor on 
+						$channel_mask = 1;// no-mux sensor on
 					}
 					for ($chn =0; $chn <4; $chn++) {
 						if (($channel_mask & 1) == 0) {
@@ -796,18 +796,18 @@ function detect_camera(){
 			}
 			if ($needupdate)  update_sysfs_sensors();
 			log_msg("Detected sensors: ".str_sensors($GLOBALS['sensors'],1),3);
-				
+
 			// Collect results from slave channels that were running in parallel
 			$nrep =0;
-				
+
 			$GLOBALS['camera_state_arr']['state'] ='SENSORS_DETECTED';
 			write_php_ini ($GLOBALS['camera_state_arr'], $GLOBALS['camera_state_path'] );
 			log_msg('Reached state: '. $GLOBALS['camera_state_arr']['state']);
-			
+
 			if ($GLOBALS['camera_state_arr']['exit_stage'] == $GLOBALS['camera_state_arr']['state']){
 				respond_xml($GLOBALS['camera_state_arr']['state']);
 			}
-				
+
 			if (!isset ($curl_data)){ // do not break if waiting for slaves
 				if ($GLOBALS['STOP_AFTER'][$GLOBALS['camera_state_arr']['state']]) break;
 			}
@@ -830,7 +830,7 @@ function detect_camera(){
 				elphel_set_P_value ( $port, ELPHEL_TRIG, ELPHEL_CONST_TRIGMODE_SNAPSHOT, ELPHEL_CONST_FRAME_IMMED);
 			}
 			elphel_set_P_value ( $GLOBALS['master_port'], ELPHEL_TRIG_PERIOD,  1, ELPHEL_CONST_FRAME_IMMED, ELPHEL_CONST_FRAMEPAIR_FORCE_NEWPROC);
-			usleep ($GLOBALS['camera_state_arr']['max_frame_time']); 
+			usleep ($GLOBALS['camera_state_arr']['max_frame_time']);
 			//Check that now all frame parameters are the same?
 			// reset sequencers
 			log_msg("Before reset sequencers:\n"          .trim(file_get_contents('/sys/devices/soc0/elphel393-framepars@0/all_frames')));
@@ -844,9 +844,9 @@ function detect_camera(){
 			}
 			log_msg("After reset sequencers:\n"          .trim(file_get_contents('/sys/devices/soc0/elphel393-framepars@0/all_frames')));
 			// Single trigger
-			
+
 			// ======= First trigger, frame # = 1 ========.
-			
+
 			elphel_set_P_value ( $GLOBALS['master_port'], ELPHEL_TRIG_PERIOD,  1, ELPHEL_CONST_FRAME_IMMED, ELPHEL_CONST_FRAMEPAIR_FORCE_NEWPROC);
 			usleep ($GLOBALS['camera_state_arr']['max_frame_time']); // > 1 frame, so all channels will get trigger parameters? // 0 0 0 0 -> 1 1 1 1
 			log_msg("After single trigger:\n"          .trim(file_get_contents('/sys/devices/soc0/elphel393-framepars@0/all_frames')));
@@ -872,7 +872,7 @@ function detect_camera(){
 				log_msg("camera_state=".$GLOBALS['camera_state_arr']['state']);
 	}
 	log_msg("ports:". implode(", ",$GLOBALS['ports']));
-	
+
 }
 
 function str_sensors($sens_arr,$inline=0){
@@ -883,7 +883,7 @@ function str_sensors($sens_arr,$inline=0){
 	} else {
 		foreach ($sens_arr as $port=>$subchn)	$sports[]=$port.': '.implode(", ",$subchn);
 		return implode("\n",$sports);
-		
+
 	}
 }
 
@@ -896,18 +896,19 @@ function str_sensors($sens_arr,$inline=0){
 
 function init_cameras(){ // $page) { init can only be from default page as page numbers can be different per-port
 	// TODO use GSR at startup to keep withstand long exposure?
-	
+
 	log_msg("init_cameras() start: camera_state=".$GLOBALS['camera_state_arr']['state']);
 	$mask = 1; // init parameters
-	// TODO: Fix TRIG_MASTER early, before anything else 
+	// TODO: Fix TRIG_MASTER early, before anything else
 //	$trig_last_names =   array();
-	$trig_par_names =    array('TRIG', 'TRIG_CONDITION', 'TRIG_MASTER','TRIG_PERIOD', 'TRIG_OUT');
+	// adding EXPOS - because setting with normal pars can desync
+	$trig_par_names =    array('TRIG', 'TRIG_CONDITION', 'TRIG_MASTER','TRIG_PERIOD', 'TRIG_OUT', 'EXPOS');
 	$delayed_par_names = array('COMPRESSOR_RUN', 'SENSOR_RUN', 'DAEMON_EN',
 			'DAEMON_EN_AUTOEXPOSURE', 'DAEMON_EN_STREAMER',
 			'DAEMON_EN_CCAMFTP','DAEMON_EN_CAMOGM', 'DAEMON_EN_TEMPERATURE');
-	
+
 	$delayed_par_names = array_merge($delayed_par_names, $trig_par_names );
-	
+
 	switch ($GLOBALS['camera_state_arr']['state']){
 		case 'SENSORS_SYNCHRONIZED':
 			$port_page=array();
@@ -916,16 +917,16 @@ function init_cameras(){ // $page) { init can only be from default page as page 
 			}
 			$all_port_pars = getMaskedPars($port_page, $mask);
 	}
-	
+
 	switch ($GLOBALS['camera_state_arr']['state']){
 		case 'SENSORS_SYNCHRONIZED':
 			log_msg("start of SENSORS_SYNCHRONIZED:\n".file_get_contents('/sys/devices/soc0/elphel393-framepars@0/all_frames')); // frame = 1
-				
+
 			// TODO: add another multi-camera systems?
 			if ($GLOBALS['camera_state_arr']['is_master'] && $GLOBALS['camera_state_arr']['is_eyesis']) {
 				$ips_10359 = array ($GLOBALS['camera_state_arr']['ip_top'],$GLOBALS['camera_state_arr']['ip_middle']);
 				log_msg ("Launching parameter setup for slave cameras");
-				
+
 				// Try curl_multi instead
 				log_msg ($cmd . 'Trying curl_multi',0);
 				$urls = array ();
@@ -934,8 +935,8 @@ function init_cameras(){ // $page) { init can only be from default page as page 
 				}
 				$curl_data = curl_multi_start ($urls);
 				log_msg ($cmd . 'Started curl_multi: '.print_r($urls,1),0);
-			}			
-			
+			}
+
 			// Set most parameters in immediate mode (to protect from i2c 64-command overflow),
 			// then others through the sequencers while sensor is stopped (waiting for manual triggers)
 			$all_parToSet =  filterParsKeepRemove($all_port_pars, $delayed_par_names, false ); // remove listed parameters
@@ -974,31 +975,37 @@ function init_cameras(){ // $page) { init can only be from default page as page 
 				unset ($all_parLater[$port]['DAEMON_EN_AUTOCAMPARS']);
 				unset ($all_parLater[$port]['DAEMON_EN_TEMPERATURE']);
 			}
-			
-			
+
+
 			$all_sensor_run =     filterParsKeepRemove($all_parLater, array('SENSOR_RUN'),     true ); // just per-port SENSOR_RUN value
 			$all_compressor_run = filterParsKeepRemove($all_parLater, array('COMPRESSOR_RUN'), true ); // just per-port COMPRESSOR_RUN value
 			$all_daemon_en =      filterParsKeepRemove($all_parLater, array('DAEMON_EN'),      true ); // just per-port DAEMON_EN value
 			$GLOBALS['trig_pars'] =  filterParsKeepRemove($all_parLater, $trig_par_names, true )[$GLOBALS['master_port']]; // trigger
-					
+
 			foreach ( $GLOBALS['ports'] as $port ) {
 				$frame_to_set = elphel_get_frame ( $GLOBALS ['master_port'] ) + 0; // ELPHEL_CONST_FRAME_DEAFAULT_AHEAD;
 				log_msg ( "port ".$port. " setting @".$frame_to_set." (now ".elphel_get_frame ( $GLOBALS ['master_port']).
 						"): " .print_r($all_parToSet[$port],1));
+
+				//set initial exposure - the correct value will be set at PARAMETERS_PRESET
+				log_msg ( "port ".$port. " setting @".$frame_to_set." init exposure: EXPOS= 1000" );
+				elphel_set_P_value ( $port, ELPHEL_EXPOS, 1000, $frame_to_set, ELPHEL_CONST_FRAMEPAIR_FORCE_NEWPROC );
+
 				// set all in ASAP mode
 				elphel_set_P_arr ( $port, $all_parToSet[$port], $frame_to_set, ELPHEL_CONST_FRAMEPAIR_FORCE_NEWPROC );
-	
+
+
 				$frame_to_set += 2; // frame #2
 				log_msg ( "port ".$port. " setting @".$frame_to_set." SENSOR_RUN= " . $all_sensor_run[$port]['SENSOR_RUN'],0);
 				elphel_set_P_arr ( $port,$all_sensor_run[$port],     $frame_to_set, ELPHEL_CONST_FRAMEPAIR_FORCE_NEWPROC );
-					
+
 				$frame_to_set += 1; // 2; // frame #3
 				log_msg ( "port ".$port. " setting @".$frame_to_set." COMPRESSOR_RUN= " . $all_compressor_run[$port]['COMPRESSOR_RUN'],0);
 				elphel_set_P_arr ( $port, $all_compressor_run[$port], $frame_to_set, ELPHEL_CONST_FRAMEPAIR_FORCE_NEWPROC );
 				if ($GLOBALS['master_port'] == $port) {
 				    $GLOBALS['camera_state_arr']['frames_skip'] = $frame_to_set - elphel_get_frame($GLOBALS['master_port']);
 				}
-			
+
 				$frame_to_set += 4; // /Frame # 8 Adjust? So streamer will have at least 2 good frames in buffer?
 				log_msg ( "port ".$port. " setting @".$frame_to_set." DAEMON_EN= " . $all_daemon_en[$port]['DAEMON_EN'],0);
 				elphel_set_P_arr ( $port, $all_daemon_en[$port], $frame_to_set, ELPHEL_CONST_FRAMEPAIR_FORCE_NEWPROC );
@@ -1007,9 +1014,9 @@ function init_cameras(){ // $page) { init can only be from default page as page 
 					$GLOBALS['camera_state_arr']['frames_skip'] = $frame_to_set - elphel_get_frame ($GLOBALS['master_port']);
 					$GLOBALS['camera_state_arr']['frames_skip_more'] = $frame_to_set - elphel_get_frame ($GLOBALS['master_port']) - $GLOBALS['camera_state_arr']['frames_skip'];
 				}
-	
+
 			}
-			
+
 			$GLOBALS['camera_state_arr']['state'] ='PARAMETERS_PRESET';
 			write_php_ini ($GLOBALS['camera_state_arr'], $GLOBALS['camera_state_path'] );
 			log_msg("will need to skip local ".$GLOBALS['camera_state_arr']['frames_skip'].' frames');
@@ -1020,10 +1027,10 @@ function init_cameras(){ // $page) { init can only be from default page as page 
 		case 'PARAMETERS_PRESET':
 			log_msg("Skipping ".$GLOBALS['camera_state_arr']['frames_skip']." frames");
 			log_msg("Frame delay = ".(0.000001*$GLOBALS['camera_state_arr']['max_frame_time'])." s");
-			
+
 			/// Reduce number of cycles to skip (does not need to wait to the very end, only start compression
 			/// Limit exposure at startup to prevent trigger problems in the darkness (set exposure last?
-			
+
 			for ($i = 0; $i< $GLOBALS['camera_state_arr']['frames_skip']; $i++){
 				// Single trigger
 				log_msg("$i: TRIG_OUT = "      .sprintf('0x%08x',elphel_get_P_value($GLOBALS['master_port'],ELPHEL_TRIG_OUT)),0);
@@ -1035,11 +1042,11 @@ function init_cameras(){ // $page) { init can only be from default page as page 
 			unset ($GLOBALS['camera_state_arr']['frames_skip']);
 			// What else can be done with each camera individually
 			// Camera should be left in a free running mode?
-			
+
 			log_msg ('Finalizing, current frames: '.file_get_contents('/sys/devices/soc0/elphel393-framepars@0/all_frames'));
-			log_msg ("Remainig trigger parameters: ".print_r($GLOBALS['trig_pars'],1));
-				
-			
+			log_msg ("Remaining trigger parameters: ".print_r($GLOBALS['trig_pars'],1));
+
+
 			if (array_key_exists('TRIG',$GLOBALS['trig_pars']) && ($GLOBALS['trig_pars']['TRIG'] === 0)){
 				elphel_set_P_arr ( $GLOBALS['master_port'],array('TRIG' => 0));
 				for ($i = 0; $i<= ELPHEL_CONST_FRAME_DEAFAULT_AHEAD; $i++){
@@ -1050,11 +1057,11 @@ function init_cameras(){ // $page) { init can only be from default page as page 
 				elphel_set_P_arr ($GLOBALS['master_port'], $GLOBALS['trig_pars']); // set other parameters - they will not take effect immediately
 				log_msg("Started camera in free running mode",3);
 				log_msg("Reached state ".$GLOBALS['camera_state_arr']['state']);
-				
+
 			} else if (!array_key_exists('TRIG_CONDITION',$GLOBALS['trig_pars']) || !$GLOBALS['trig_pars']['TRIG_CONDITION']){
 				log_msg ("array_key_exists('TRIG_CONDITION', GLOBALS['trig_pars'] = ".array_key_exists('TRIG_CONDITION',$GLOBALS['trig_pars']),0);
 				log_msg ('GLOBALS[trig_pars][TRIG_CONDITION] = '.$GLOBALS['trig_pars']['TRIG_CONDITION'],0);
-					// self-triggered mode 
+					// self-triggered mode
 				unset ($GLOBALS['trig_pars']['TRIG_CONDITION']);
 				unset($trig_period);
 				if (array_key_exists('TRIG_PERIOD',$GLOBALS['trig_pars']) && ($GLOBALS['trig_pars']['TRIG_PERIOD'] > 255)){
@@ -1092,7 +1099,7 @@ function init_cameras(){ // $page) { init can only be from default page as page 
 				log_msg("trig_out = $trig_out");
 				log_msg("trig_period = $trig_period");
 				log_msg("remaining  GLOBALS[trig_pars] = ".print_r($GLOBALS['trig_pars'],1));
-				
+
 				elphel_set_P_arr ($GLOBALS['master_port'], $GLOBALS['trig_pars']); // without TRIG_PERIOD and TRIG_OUT
 				for ($i = 0; $i<= ELPHEL_CONST_FRAME_DEAFAULT_AHEAD; $i++){
 					elphel_set_P_value ( $GLOBALS['master_port'], ELPHEL_TRIG_PERIOD,  1, ELPHEL_CONST_FRAME_IMMED, ELPHEL_CONST_FRAMEPAIR_FORCE_NEWPROC);
@@ -1113,7 +1120,7 @@ function init_cameras(){ // $page) { init can only be from default page as page 
 					unset ($curl_data);
 					if ($trig_out) {//	now it is OK to set it in immediate mode
 						log_msg (sprintf('Setting TRIG_OUT= 0x%08x',$trig_out));
-// Now elphel_set_P_arr should work with ELPHEL_CONST_FRAME_IMMED, before it was only implemented for elphel_set_P_value						
+// Now elphel_set_P_arr should work with ELPHEL_CONST_FRAME_IMMED, before it was only implemented for elphel_set_P_value
 //						elphel_set_P_arr ($GLOBALS['master_port'], array('TRIG_OUT' => $trig_out), ELPHEL_CONST_FRAME_IMMED);
 						elphel_set_P_value ($GLOBALS['master_port'], ELPHEL_TRIG_OUT, $trig_out, ELPHEL_CONST_FRAME_IMMED);
 						usleep ($GLOBALS['camera_state_arr']['max_frame_time']);
@@ -1132,12 +1139,12 @@ function init_cameras(){ // $page) { init can only be from default page as page 
 							log_msg("5.Trigger $i:\n".file_get_contents('/sys/devices/soc0/elphel393-framepars@0/all_frames'));
 						}
 					}
-					
+
 				} else{
 					log_msg ('All done that could be done - maybe more input triggers are needed');
 				}
 			}
-			
+
 			$GLOBALS['camera_state_arr']['state'] = 'INITIALIZED'; // conditionally
 			write_php_ini ($GLOBALS['camera_state_arr'], $GLOBALS['camera_state_path']);
 			log_msg ("Reached state " . $GLOBALS['camera_state_arr']['state']);
@@ -1145,7 +1152,7 @@ function init_cameras(){ // $page) { init can only be from default page as page 
 				respond_xml ($GLOBALS['camera_state_arr']['state']);
 			}
 			if ($GLOBALS['STOP_AFTER'][$GLOBALS['camera_state_arr']['state']]) break;
-			
+
 		case 'SEQUENCERS_ADVANCED': // now set periodic trigger (if needed) in immediate mode - FPGA period will be overwritten
 			break;
 			$GLOBALS['camera_state_arr']['state'] ='INITIALIZED';
@@ -1155,7 +1162,7 @@ function init_cameras(){ // $page) { init can only be from default page as page 
 		default:
 			log_msg("init_cameras(): camera_state=".$GLOBALS['camera_state_arr']['state']);
 	}
-	
+
 }
 
 /** Read sensor types per port, per subchannel from sysfs*/
@@ -1164,7 +1171,7 @@ function get_sysfs_sensors()
 	$GLOBALS['ports'] =  array(); // list of enabled ports
 	$GLOBALS['sensors']= array('none','none','none','none');
 	$GLOBALS['port_mux']=array('none','none','none','none');
-	$use_mux=false;	
+	$use_mux=false;
 	for ($port = 0; $port < 4; $port++){
 		$GLOBALS['sensors'][$port] = array('none','none','none','none');
 		for ($chn = 0; $chn < 4; $chn++){
@@ -1191,7 +1198,7 @@ function get_sysfs_sensors()
 		log_msg ("Got port multiplexer map from sysfs: ".implode(',', $GLOBALS['port_mux']));
 	}
 	log_msg ("Active sensor ports: ".implode(',', $GLOBALS['ports']).' master_port = '. $GLOBALS['master_port']);
-	
+
 //	for ($port=0; $port < 4; $port++) if ($GLOBALS['sensors'][$port][0] != 'none') {
 //		$GLOBALS['master_port'] = $port;
 //		break;
@@ -1206,7 +1213,7 @@ function update_sysfs_sensors()
 		log_msg('port='.$port.' GLOBALS[sensors][port][0]='.$GLOBALS['sensors'][$port][0]);
 		if ($GLOBALS['sensors'][$port][0] != 'none') $GLOBALS['ports'][] = $port;
 	}
-	
+
 	for ($port=0; $port < 4; $port++){
 		for ($chn = 0; $chn < 4; $chn++){
 			$f = fopen ( $GLOBALS['sysfs_detect_sensors'] . '/sensor' . $port . $chn, 'w' );
@@ -1349,7 +1356,7 @@ function get_application_mode() {
 			log_msg("10389 board is not present, loading /etc/elphel393/default_10389.xml");
 			$xml = simplexml_load_string ( file_get_contents("/etc/elphel393/default_10389.xml") );
 		}
-		
+
 		if ($xml === false) {
 			log_msg("10389 board not present");
 		} else {
@@ -1365,7 +1372,7 @@ function get_application_mode() {
 		$GLOBALS['camera_state_arr'] = parse_ini_file ( $GLOBALS['camera_state_path'] );
 		log_msg("Parsed existing ini file",0);
 	}
-	
+
 	// Is it reboot or specific init stage?
 	$need_update = false;
 	foreach ($_SERVER['argv'] as $param) {
@@ -1383,9 +1390,9 @@ function get_application_mode() {
 			$GLOBALS['camera_state_arr']['exit_stage'] = substr ($param, 13);
 			$need_update = true;
 		}
-				
+
 	}
-	
+
 	if (array_key_exists ( 'reboot', $_GET )){
 		$GLOBALS['camera_state_arr']['state'] = 'REBOOT';
 		$GLOBALS['init'] = true;
@@ -1396,23 +1403,23 @@ function get_application_mode() {
 		$GLOBALS['init'] = true;
 		$need_update = true;
 	}
-	
+
 	if (array_key_exists ( 'init_stage', $_GET )){
 		$GLOBALS['camera_state_arr']['state'] = $_GET['init_stage'];
 		$GLOBALS['init'] = true;
 		$need_update = true;
 	}
-	
+
 	if (array_key_exists ( 'exit_stage', $_GET )){
 		$GLOBALS['camera_state_arr']['exit_stage'] = $_GET['exit_stage'];
 		$GLOBALS['init'] = true;
 		$need_update = true;
 	}
-	
+
 	if ($need_update) {
 		write_php_ini ($GLOBALS['camera_state_arr'], $GLOBALS['camera_state_path'] );
 	}
-	
+
 	// Select by camera type, return sensor mask ('mode')
 	switch ($GLOBALS['camera_state_arr']['application']){
 		case 'MT9P006':
@@ -1446,7 +1453,7 @@ function get_mt9p006_mode() {
 	$GLOBALS['camera_state_arr']['is_master'] = 1;
 	$GLOBALS['camera_state_arr']['max_frame_time'] = 100000; // usec, should exceed longest initial free frame period
 	$GLOBALS['camera_state_arr']['is_mt9p006'] = 1;
-	
+
 	write_php_ini ($GLOBALS['camera_state_arr'], $GLOBALS['camera_state_path'] );
 	return $mode;
 }
@@ -1457,7 +1464,7 @@ function get_mt9p006_mode() {
  * 1001 - top,    slave,   controls own power,         default IP = 161
  * 1002 - middle, slave,   power controlled by bottom, default IP = 162
  * 1003 - bottom, master,  controls power for middle,  default IP = 163
- *  
+ *
  * @return unknown|number */
 
 function get_eyesis_mode() { // should be called...
@@ -1485,7 +1492,7 @@ function get_eyesis_mode() { // should be called...
 	}
 	$GLOBALS['camera_state_arr']['is_eyesis'] = 1;
 	$GLOBALS['camera_state_arr']['eyesis_power'] = 1; // disable fan control, reuse it to control power
-	
+
 	write_php_ini ($GLOBALS['camera_state_arr'], $GLOBALS['camera_state_path'] );
 	$GLOBALS['STOP_AFTER']=array_merge($GLOBALS['STOP_AFTER'],array( // overwrite specified fields, keep others
 			'BOOT'     =>           true,
@@ -1541,7 +1548,7 @@ function get_remote_states($IPs){
 //    print_r($output);
 //    echo __LINE__."implode(' ',output) = ".implode(" ",$output)."\n\n";
 //    print_r(json_decode(implode(" ",$output)));
-    
+
     foreach (json_decode(implode(" ",$output)) as $i=>$s) {
 //    	echo "### $i: ".print_r($s,1);
     	$xml = simplexml_load_string ($s);
@@ -1576,7 +1583,7 @@ function wait_slaves_boot($retries){
 		  	    array_key_exists('state',       $states[1]) &&
 		  	   !array_key_exists('autocampars', $states[0]) && // autocampars.php should already terminate
 		  	   !array_key_exists('autocampars', $states[1])){
-	  	   		break; // wrong state - need system reboot TODO: Add slave reboot by master	
+	  	   		break; // wrong state - need system reboot TODO: Add slave reboot by master
 		  	}
 		}
 	}
@@ -1605,7 +1612,7 @@ function reboot_me(){
 function reboot_all_if_master(){
 	$reply_xml=array_key_exists ( 'reboot', $_GET );
 	log_msg('Current state: '. print_r($GLOBALS['camera_state_arr'],1));
-	
+
 	if ($GLOBALS['camera_state_arr']['is_master']){
 		$IPs=array();
 		foreach ($GLOBALS['camera_state_arr'] as $key=>$ip){
@@ -1637,7 +1644,7 @@ function eyesis_all_power_fpga($include){
 		if (count($IPs) == 0){
 			$IPs[]='localhost';
 		}
-		
+
 		log_msg('running autocampars.py ['.implode(',',$IPs).'] py393 '.$include);
 		exec ( 'autocampars.py ['.implode(',',$IPs).'] py393 '.$include, $output, $retval );
 		return true;
@@ -1648,11 +1655,11 @@ function eyesis_all_power_fpga($include){
 /** Processes commands in daemon mode (not yet tested with nc393 */
 
 function processDaemon($port) {
-	//TODO: Make sure $port >=0 
+	//TODO: Make sure $port >=0
 	$AUTOCAMPARS = elphel_get_P_arr ( $GLOBALS ['sensor_port'], array (
 			"AUTOCAMPARS_CMD" => null,
 			"AUTOCAMPARS_GROUPS" => null,
-			"AUTOCAMPARS_PAGE" => null 
+			"AUTOCAMPARS_PAGE" => null
 	) );
 	// echo "processDaemon()\n";
 	// print_r($AUTOCAMPARS);
@@ -1688,13 +1695,13 @@ function processDaemon($port) {
 			saveRotateConfig ($port, $GLOBALS['numBackups'] );
 			break;
 /*
- * Disabled in NC393, as init is about all ports and daemon - single camera port			
+ * Disabled in NC393, as init is about all ports and daemon - single camera port
 		case ELPHEL_CONST_AUTOCAMPARS_CMD_INIT :
 			// echo "ELPHEL_CONST_AUTOCAMPARS_CMD_INIT\n";
 			$pages = processInit ( $page, true ); // needs sensor reset/detection
 			                                    // /NOTE: If $page<0 here - sensor failed to initialize, if this script was called from the daemon - it will never restart on it's own. Log record is made
 			break;
-*/			
+*/
 		default :
 			log_msg($_SERVER ['argv'] [0] . ": Unknown command=" . $AUTOCAMPARS ['AUTOCAMPARS_CMD']);
 	}
@@ -1714,7 +1721,7 @@ function processPost($port) {
 			$GLOBALS['configs'][$port]['paramSets'] [$page] ['comment'] = $comment;
 			log_msg("processPost($port) - updating comment");
 //			log_msg("GLOBALS['configs']=".print_r($GLOBALS['configs'],1));
-				
+
 			saveRotateConfig ($port, $GLOBALS['numBackups'] );
 			processGet ($port);
 			log_close();
@@ -1757,7 +1764,7 @@ function processPost($port) {
 			log_close();
 			exit ( 0 );
 		}
-	
+
 	echo "<pre>\n";
 	print_r ( $_POST );
 	echo "</pre>\n";
@@ -1838,8 +1845,8 @@ WARN;
 		exit ( 1 );
 	}
 /*
- * 
- * 
+ *
+ *
     [_SERVER] => Array
         (
             [CONSOLE] => /dev/console
@@ -1874,7 +1881,7 @@ WARN;
             [REQUEST_URI] => /autocampars.php?new
             [DOCUMENT_ROOT] => /www/pages
             [SCRIPT_FILENAME] => /www/pages/autocampars.php
-            [PATH_INFO] => 
+            [PATH_INFO] =>
             [SCRIPT_NAME] => /autocampars.php
             [REMOTE_ADDR] => 192.168.0.210
             [REMOTE_PORT] => 36054
@@ -1894,9 +1901,9 @@ WARN;
 
             [argc] => 1
         )
-* 
+*
               'REQUEST_URI': '/autocampars.py?a=1&b&c=2',
-* 
+*
  	foreach ( $GLOBALS['ports'] as $port ) {
 		log_msg ("Rotating configs for port $port");
 		if (file_exists ($GLOBALS['configDir'].'/'.$GLOBALS['configPaths'][$port])) {
@@ -1904,8 +1911,8 @@ WARN;
 		}
 	}
 
- */	
-	
+ */
+
 	$page_title = "Model 393 Camera Parameters save/restore, sensor port {$port}";
 	startPage ( $page_title, mainJavascript ($port) );
 	if ($GLOBALS['twoColumns'])
@@ -1938,15 +1945,15 @@ $log
 </body>
 </html>
 PAGE;
-	
+
 }
 function startPage($page_title, $javascript) {
 	$url = str_replace ( 'new', 'same', $_SERVER ['REQUEST_URI'] ); // / form will remove "new" when submitting
-	                                                        
+
 	// [REQUEST_URI] => /autocampars.php?new
-	
+
 	$btns_table = getButtonsTable();
-	
+
 	echo <<<HEAD
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
                       "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
@@ -1986,7 +1993,7 @@ function getButtonsTable(){
 	$str .= "</tr>\n";
 	$str .= "</table>\n";
 	return $str;
-} 
+}
 
 function writeGroupsTable($sensor_port) {
 	printf ( "<table border='1' style='font-family: Courier, monospace;'>\n" );
@@ -2023,7 +2030,7 @@ function writePagesTable($sensor_port) {
 	for($i = 0; $i < $GLOBALS['useDefaultPageNumber']; $i ++) {
 		printf ( "<tr>" );
 		printf ( "<td style='text-align:right'>%d</td>", $i );
-		
+
 		if (array_key_exists ( $i, $GLOBALS['configs'][$sensor_port]['paramSets'] )) {
 			printf ( "<td style='text-align:center'><input type='radio' name='default_page' value='%d' id='id_default_page_%d' %s" . " title='Select config file page %d as default (boot up) page' /></td>", $i, $i, ($i == $GLOBALS['configs'][$sensor_port]['defaultPage']) ? "checked" : "", $i );
 		} else {
@@ -2044,7 +2051,7 @@ function writePagesTable($sensor_port) {
 				printf ( "<input type='text'   name='comment_%d' size='40' value='%s' id='id_comment_%d' style='text-align:left'/>", $i, $GLOBALS['configs'][$sensor_port]['paramSets'] [$i] ['comment'], $i );
 				printf ( "<input type='submit' name='update_comment_%d' value='Update' id='id_update_comment_%d' title='Update comment in the config file'/>", $i, $i );
 			}
-			
+
 			printf ( "</td>" );
 		} else {
 			printf ( "<td colspan='3'>&nbsp;</td>" );
@@ -2134,19 +2141,19 @@ function parse_response(resp){
   	result = resp.getElementsByTagName("result")[0].childNodes[0].nodeValue;
   }else if (resp.getElementsByTagName("reboot").length!=0){
   	result = resp.getElementsByTagName("reboot")[0].childNodes[0].nodeValue;
-  }else if (resp.getElementsByTagName("error").length!=0){		
+  }else if (resp.getElementsByTagName("error").length!=0){
     result = resp.getElementsByTagName("error")[0].childNodes[0].nodeValue;
   }else{
   	result = "Error";
   }
   document.getElementById("btn_response").innerHTML = result;
 }
-  		
+
 function send_request(rq,callback){
   var request = new XMLHttpRequest();
   request.open('GET', rq, true);
   request.onreadystatechange = function() {
-    if (this.readyState == 4 && this.status == 200) {      
+    if (this.readyState == 4 && this.status == 200) {
       var resp = this.responseXML;
   	  callback(resp);
     }
@@ -2185,7 +2192,7 @@ function addGammas($mpars) { // common to all channels
 	}
 		// var_dump($gammas);
 	log_msg('Collected gammas == '. print_r($gammas,1));
-	
+
 	foreach ( $gammas as $gamma_black => $whatever ) {
 		$black = ($gamma_black >> 8) & 0xff;
 		$gamma = ($gamma_black & 0xff) * 0.01;
@@ -2215,7 +2222,7 @@ function filterParsKeepRemove($all,     ///< array (indexed by ports) of arrays 
 }
 /** Get */
 function getMaskedPars($port_page, ///< array of parameter pages indexed by ports
-                       $mask)      ///< bitmask for parameter groups to use (1 - init) 
+                       $mask)      ///< bitmask for parameter groups to use (1 - init)
                                    ///< @return array of per-port array of parameters
 
 {
@@ -2238,8 +2245,8 @@ function setParsFromPage($sensor_port, $page, $mask) {
 	// /FIXME: !!!
 	// / Prevent too many i2c register writes for the same frame. If it is the case - split parameter groups between several frames
 	// / AS there is a hardware limit of 64 parameters/frame in the sequencers (64 for the i2c, 64 - for the FPGA registers)
-	// For that it is possible to use ASAP mode - driver will wait for the i2c command to be sent 
-	
+	// For that it is possible to use ASAP mode - driver will wait for the i2c command to be sent
+
 log_msg("setParsFromPage($sensor_port, $page, $mask)");
 	if ($page == $GLOBALS['useDefaultPageNumber']) {
 		$page = $GLOBALS['configs'][$sensor_port]['defaultPage'];
@@ -2264,7 +2271,7 @@ log_msg("setParsFromPage($sensor_port, $page, $mask)");
 function readParsToPage($sensor_port, $page) {
 	log_msg("readParsToPage($sensor_port, $page)");
 //	log_msg("GLOBALS['configs']=".print_r($GLOBALS['configs'],1));
-	
+
 	if (($page == $GLOBALS['protectedPage']) || ($page < 0) || ($page > $GLOBALS['useDefaultPageNumber']))
 		return - 1;
 	if ($page == $GLOBALS['useDefaultPageNumber'])
@@ -2276,7 +2283,7 @@ function readParsToPage($sensor_port, $page) {
 	$GLOBALS ['configs'] [$sensor_port] ['paramSets'] [$page] ['timestamp'] = time ();
 	$GLOBALS ['configs'] [$sensor_port] ['nextPage'] = findNextPage ( $page );
 	elphel_set_P_arr ( $sensor_port, array (
-			"AUTOCAMPARS_PAGE" => $page + 0 
+			"AUTOCAMPARS_PAGE" => $page + 0
 	) ); // / will set some (3?) frames ahead so not yet available until waited enough
 	return $page;
 	// date("F j, Y, g:i a")
@@ -2285,9 +2292,9 @@ function readParsToPage($sensor_port, $page) {
 function saveRotateConfig($sensor_port, $numBackups) {
 	log_msg("saveRotateConfig($sensor_port, $numBackups), \$GLOBALS['configs'] [$sensor_port] ['defaultPage'] = ".$GLOBALS['configs'] [$sensor_port] ['defaultPage'],0);
 //	log_msg("GLOBALS['configs']=".print_r($GLOBALS['configs'],1));
-	
+
 	rotateConfig ($sensor_port, $numBackups );
-	
+
 	$confFile = fopen ( $GLOBALS['configDir'].'/'.$GLOBALS['configPaths'][$sensor_port], "w+" );
 	fwrite ( $confFile, encodeConfig ( $GLOBALS['configs'][$sensor_port] ) );
 	fclose ( $confFile );
@@ -2315,7 +2322,7 @@ function createConfigLink($sensor_port){
 			log_msg("Created link ".$GLOBALS['configDir'].'/'.$GLOBALS['configLink'].' -> '.$GLOBALS['configDir'].'/'.$GLOBALS['configPaths'][$sensor_port]);
 		}
 	}
-	
+
 }
 
 function rotateConfig($sensor_port,$numBackups) {
@@ -2355,7 +2362,7 @@ function parseConfig($filename) {
 			'descriptions' => array (),
 			'groups' => array (),
 			'parTypes' => array (),
-			'paramSets' => array () 
+			'paramSets' => array ()
 	);
 	$xml = simplexml_load_file ( $filename );
 	$config ['version'] = ( string ) $xml->version;
@@ -2403,7 +2410,7 @@ function encodeConfig($config) { // Can not use SimpleXMLElement as need comment
 	foreach ( $config ['groupBits'] as $key => $bit )
 		$xml .= sprintf ( "      <%s bit=\"%d\">\"%s\"</%s>\n", $key, $bit, $config ['groupDescriptions'] [$bit], $key );
 	$xml .= "    </groupNames>\n";
-	
+
 	$xml .= "<!-- Number of parameter page that will be used as default (i.e. after camera boot) -->\n";
 	$xml .= sprintf ( "    <defaultPage>%d</defaultPage>\n", $config ['defaultPage'] );
 	$xml .= "<!-- Number of parameter page that will be next used to save parameters (if not specified) -->\n";
@@ -2413,7 +2420,7 @@ function encodeConfig($config) { // Can not use SimpleXMLElement as need comment
 	foreach ( $config ['descriptions'] as $name => $description )
 		$xml .= sprintf ( "      <%s>\"%s\"</%s>\n", $name, htmlspecialchars ( $description, ENT_QUOTES ), $name );
 	$xml .= "    </descriptions>\n";
-	
+
 	$xml .= "<!-- Parameter groups -->\n";
 	$xml .= "    <groups>\n";
 //	log_msg("======= config ['groups'] = ".print_r($config ['groups'],1));
@@ -2442,9 +2449,9 @@ function encodeConfig($config) { // Can not use SimpleXMLElement as need comment
 		}
 		$xml .= "      </set>\n";
 	}
-	
+
 	$xml .= "    </paramSets>\n";
-	
+
 	$xml .= "  </autocampars>\n";
 	return $xml;
 }
@@ -2462,12 +2469,12 @@ function myval($s) {
 function calculateDefaultPhases() {
 	log_msg("calculateDefaultPhases() not implemented in nc393");
 	return array();
-	
+
 	$phases = array (
 			'SENSOR_PHASE' => 0, // values are not used, just the keys
 			'MULTI_PHASE1' => 0,
 			'MULTI_PHASE2' => 0,
-			'MULTI_PHASE3' => 0 
+			'MULTI_PHASE3' => 0
 	);
 	$phases = elphel_get_P_arr ( $GLOBALS ['sensor_port'], $phases ); // get current values
 	/**
@@ -2505,7 +2512,7 @@ function calculateDefaultPhases() {
 			$len = $xml->len;
 			$DCM_STEP = 22; // ps/step
 			$clk_period = 1000000000000.0 / elphel_get_P_value ( $GLOBALS ['sensor_port'], ELPHEL_CLK_SENSOR );
-			
+
 			$cable_len_ps = $len * 15; // 15ps/mm
 			$px_delay = $cable_len_ps;
 			// $px_delay_90 = round( (4*$px_delay+$clk_period/2)/$clk_period );
@@ -2552,7 +2559,7 @@ function safefilerewrite($fileName, $dataToSave) {
 			if (! $canWrite)
 				usleep ( round ( rand ( 0, 100 ) * 1000 ) );
 		} while ( (! $canWrite) and ((microtime ( TRUE ) - $startTime) < 5) );
-		
+
 		// file was locked so now we can store information
 		if ($canWrite) {
 			fwrite ( $fp, $dataToSave );
@@ -2586,7 +2593,7 @@ function curl_multi_start($urls) {
 	}
 	return array ("mh" => $curl_mh,"handles" => $aCurlHandles);
 }
-	
+
 function curl_multi_finish($data, $use_xml=true, $ntry=0, $echo = false) {
 	$curl_active = 1;
 	$curl_mrc = CURLM_OK;
@@ -2659,7 +2666,7 @@ function createDefaultConfig($version, $port, $multisensor = false, $eyesis_mode
 	$AEXP_FRACPIX = $eyesis_mode ? 0xf333 : 0xfdf3; // 99.2% - sometimes 99.8% is unstable WB 0xff80; // 95% : 99.8%
 	$AEXP_LEVEL = $eyesis_mode ? 0xc800 : 0xf800; // 200 : 250
 	$DAEMON_EN_TEMPERATURE = ($eyesis_mode > 100) ? 1 : 0; // or enable it for all?
-	                                               
+
 	// / Default parameters to be overwritten by particular applications
 	$FLIPH = 0;
 	$FLIPV = 0;
@@ -2672,7 +2679,7 @@ function createDefaultConfig($version, $port, $multisensor = false, $eyesis_mode
 	$HISTWND_RTOP = 0x8000;
 	$COLOR = 0;
 	$SENSOR_PHASE =  $multisensor ? 0x55 : 0x15;
-	
+
 	/*
 	* if ($GLOBALS['camera_state_arr']['application']=="Eyesis4pi393"){ //get_eyesis_mode
 	*   $GLOBALS['camera_state_arr']['is_eyesis'] = 1;
@@ -2688,7 +2695,7 @@ function createDefaultConfig($version, $port, $multisensor = false, $eyesis_mode
 				break;
 		}
 	}
-	
+
 	log_msg("multisensor=".$multisensor.", SENSOR_PHASE=".$SENSOR_PHASE);
 	switch ($eyesis_mode) {
 		case 1 :
@@ -2871,9 +2878,9 @@ function createDefaultConfig($version, $port, $multisensor = false, $eyesis_mode
 			break;
 		log_msg ("**** ERROR: Invalid eyesis_mode value: $eyesis_mode");
 	}
-	
+
 	log_msg ("Generating default config for port $port, multiplexed= $multisensor eyesis_mode=$eyesis_mode");
-	
+
 	log_msg ("MULTI_FLIPH =     $MULTI_FLIPH");
 	log_msg ("MULTI_FLIPV =     $MULTI_FLIPV");
 	log_msg ("MULTI_SELECTED =  $MULTI_SELECTED");
@@ -2888,11 +2895,11 @@ function createDefaultConfig($version, $port, $multisensor = false, $eyesis_mode
 	log_msg ("TRIG_CONDITION =  $TRIG_CONDITION");
 	log_msg ("TRIG_OUT =        $TRIG_OUT");
 	log_msg ("MULTI_MODE =      $MULTI_MODE");
-	
+
 /*
 	return <<<DEFAULT_CONFIG
 DEFAULT_CONFIG
- 
+
  * function createDefaultConfig($version, $port, $multisensor = false, $eyesis_mode = 0) { // / 0 - not eyesis, 1-3 - camera number
 
 							elphel_set_P_value ( $sensor_port, ELPHEL_MAXAHEAD, 2, 0, 8 ); // / When servicing interrupts, try programming up to 2 frames ahead of due time)
@@ -2900,12 +2907,12 @@ DEFAULT_CONFIG
 // With increased delay - seems OK
 // Resizing - still breaks, probably for different reason
 							elphel_set_P_value ( $sensor_port, ELPHEL_MEMSENSOR_DLY, 1024, $frame + 2, ELPHEL_CONST_FRAMEPAIR_FORCE_NEWPROC );
-								
+
 							elphel_set_P_value ( $sensor_port, ELPHEL_FPGA_XTRA, 1000, $frame + 3, ELPHEL_CONST_FRAMEPAIR_FORCE_NEWPROC ); // /compressor needs extra 1000 cycles to compress a frame (estimate)
 //							elphel_set_P_value ( $sensor_port, ELPHEL_EXTERN_TIMESTAMP, 1, $frame + 3, ELPHEL_CONST_FRAMEPAIR_FORCE_NEWPROC ); // / only used with async trigger
-							                                                                                                                   
+
 							// / good (latency should be changed, but for now that will make a correct initialization - maybe obsolete)
-							
+
 							elphel_set_P_value ( $sensor_port, ELPHEL_BITS, 8, $frame + 3, ELPHEL_CONST_FRAMEPAIR_FORCE_NEWPROC );
 							elphel_set_P_value ( $sensor_port, ELPHEL_QUALITY, 80, $frame + 4, ELPHEL_CONST_FRAMEPAIR_FORCE_NEWPROC );
 							elphel_set_P_value ( $sensor_port, ELPHEL_COLOR, ELPHEL_CONST_COLORMODE_COLOR, $frame + 4, ELPHEL_CONST_FRAMEPAIR_FORCE_NEWPROC );
@@ -2921,11 +2928,11 @@ DEFAULT_CONFIG
 							elphel_set_P_value ( $sensor_port, ELPHEL_SENSOR_RUN, 2, $frame + 4, ELPHEL_CONST_FRAMEPAIR_FORCE_NEWPROC );
 							elphel_set_P_value ( $sensor_port, ELPHEL_COMPRESSOR_RUN, 2, $frame + 4, ELPHEL_CONST_FRAMEPAIR_FORCE_NEWPROC ); // / run compressor
 
- */	
-	
-	
-	
-	
+ */
+
+
+
+
 	// will create $SENSOR_PHASE=...;MULTI_PHASE1=...;MULTI_PHASE3=...;)
 //	extract ( calculateDefaultPhases () ); // read sensor phases from memory or calculate from the eeproms for newer devices
 	// / Now select window orientations based on eyesis_mode
@@ -3034,17 +3041,17 @@ DEFAULT_CONFIG
      <BSCALE>"Ratio of gains in Blue and Green (base) colors, multiplied by 0x10000. This value is connected to individual gains: GAINB and GAING, when you change BSCALE it will cause GAINB to be updated also (if BSCALE is not disabled in BSCALE_CTL). When GAINB is changed, this BSCALE value may also change (or not - depending on the BSCALE_CTL)"</BSCALE>
      <RSCALE_CTL>"A 2-bit RSCALE control. The following constants are defined:`
         ELPHEL_CONST_CSCALES_CTL_NORMAL -  use RSCALE to update GAINR and be updated when GAINR is changed`
-        ELPHEL_CONST_CSCALES_CTL_RECALC -  recalculate RSCALE from GAINR/GAING once, then driver will modify the RSCALE_CTL value to ELPHEL_CONST_CSCALES_CTL_NORMAL` 
+        ELPHEL_CONST_CSCALES_CTL_RECALC -  recalculate RSCALE from GAINR/GAING once, then driver will modify the RSCALE_CTL value to ELPHEL_CONST_CSCALES_CTL_NORMAL`
         ELPHEL_CONST_CSCALES_CTL_FOLLOW -  update RSCALE from GAINR/GAING, but ignore any (external to the driver) changes to RSCALE itself`
         ELPHEL_CONST_CSCALES_CTL_DISABLE - completely disable RSCALE - do not update it from GAINR and ignore any external changes to RSCALE`"</RSCALE_CTL>
      <GSCALE_CTL>"A 2-bit GSCALE control. The following constants are defined:`
         ELPHEL_CONST_CSCALES_CTL_NORMAL -  use GSCALE to update GAINGB and be updated when GAINGB is changed`
-        ELPHEL_CONST_CSCALES_CTL_RECALC -  recalculate GSCALE from GAINGB/GAING once, then driver will modify the GRSCALE_CTL value to ELPHEL_CONST_CSCALES_CTL_NORMAL` 
+        ELPHEL_CONST_CSCALES_CTL_RECALC -  recalculate GSCALE from GAINGB/GAING once, then driver will modify the GRSCALE_CTL value to ELPHEL_CONST_CSCALES_CTL_NORMAL`
         ELPHEL_CONST_CSCALES_CTL_FOLLOW -  update GSCALE from GAINGB/GAING, but ignore any (external to the driver) changes to GSCALE itself`
         ELPHEL_CONST_CSCALES_CTL_DISABLE - completely disable GSCALE - do not update it from GAING and ignore any external changes to GSCALE`"</GSCALE_CTL>
      <BSCALE_CTL>"A 2-bit BSCALE control. The following constants are defined:`
         ELPHEL_CONST_CSCALES_CTL_NORMAL -  use BSCALE to update GAINB and be updated when GAINB is changed`
-        ELPHEL_CONST_CSCALES_CTL_RECALC -  recalculate BSCALE from GAINB/GAING once, then driver will modify the BSCALE_CTL value to ELPHEL_CONST_CSCALES_CTL_NORMAL` 
+        ELPHEL_CONST_CSCALES_CTL_RECALC -  recalculate BSCALE from GAINB/GAING once, then driver will modify the BSCALE_CTL value to ELPHEL_CONST_CSCALES_CTL_NORMAL`
         ELPHEL_CONST_CSCALES_CTL_FOLLOW -  update BSCALE from GAINB/GAING, but ignore any (external to the driver) changes to BSCALE itself`
         ELPHEL_CONST_CSCALES_CTL_DISABLE - completely disable BSCALE - do not update it from GAINB and ignore any external changes to BSCALE`"</BSCALE_CTL>
      <FATZERO>"not used"</FATZERO>
@@ -3247,9 +3254,9 @@ DEFAULT_CONFIG
      <MULTI_CHEIGHT>"Composite frame height (stored while in single-sensor mode)"</MULTI_CHEIGHT>
      <MULTI_CLEFT>  "Composite frame left margin  (stored while in single-sensor mode, copied to WOI_LEFT)"</MULTI_CLEFT>
      <MULTI_CTOP>   "Composite frame top margin (stored while in single-sensor mode)"</MULTI_CTOP>
-     <MULTI_CFLIPH> "Horizontal flip for composite image (stored while in single-sensor mode)"</MULTI_CFLIPH> 
+     <MULTI_CFLIPH> "Horizontal flip for composite image (stored while in single-sensor mode)"</MULTI_CFLIPH>
      <MULTI_CFLIPV> "Vertical flip for composite image (stored while in single-sensor mode)"</MULTI_CFLIPV>
-     <MULTI_VBLANK> "Vertical blanking for buffered frames (2,3) BEFORE FRAME, not after"</MULTI_VBLANK> 
+     <MULTI_VBLANK> "Vertical blanking for buffered frames (2,3) BEFORE FRAME, not after"</MULTI_VBLANK>
      <MULTI_WOI>    "Width of frame 1 (direct)  // Same as next"</MULTI_WOI>
      <MULTI_WIDTH1> "Width of frame 1 (direct) // same as MULTI_WOI !!!!"</MULTI_WIDTH1>
      <MULTI_WIDTH2> "Width of frame 2 (first buffered)"</MULTI_WIDTH2>
@@ -3525,9 +3532,9 @@ DEFAULT_CONFIG
      <MULTI_CHEIGHT></MULTI_CHEIGHT>
      <MULTI_CLEFT></MULTI_CLEFT>
      <MULTI_CTOP></MULTI_CTOP>
-     <MULTI_CFLIPH></MULTI_CFLIPH> 
+     <MULTI_CFLIPH></MULTI_CFLIPH>
      <MULTI_CFLIPV></MULTI_CFLIPV>
-     <MULTI_VBLANK>"init,multisensor"</MULTI_VBLANK> 
+     <MULTI_VBLANK>"init,multisensor"</MULTI_VBLANK>
      <MULTI_WOI></MULTI_WOI>
      <MULTI_WIDTH1> "init,multisensor"</MULTI_WIDTH1>
      <MULTI_WIDTH2> "init,multisensor"</MULTI_WIDTH2>
@@ -3688,20 +3695,20 @@ DEFAULT_CONFIG
      <FTP_UPDATE>600</FTP_UPDATE>
      <DEBUG>0</DEBUG>
      <MAXAHEAD>3</MAXAHEAD>
-     
+
 <!--     <HIST_DIM_01>0x0a000a00</HIST_DIM_01>
      <HIST_DIM_23>0x0a000a00</HIST_DIM_23> -->
-     
+
      <AE_INTEGERR></AE_INTEGERR>
      <WB_INTEGERR></WB_INTEGERR>
      <TASKLET_CTL>0</TASKLET_CTL>
      <GFOCUS_VALUE></GFOCUS_VALUE>
-     
+
 <!--     <HISTMODE_Y>$HISTMODE_Y</HISTMODE_Y>
      <HISTMODE_C>$HISTMODE_C</HISTMODE_C>
      <SKIP_DIFF_FRAME>4</SKIP_DIFF_FRAME>
      <PROFILING_EN>0</PROFILING_EN> -->
-     
+
      <STROP_MCAST_EN>0</STROP_MCAST_EN>
      <STROP_MCAST_IP>0</STROP_MCAST_IP>
      <STROP_MCAST_PORT>20020</STROP_MCAST_PORT>
@@ -3719,12 +3726,12 @@ DEFAULT_CONFIG
 <!-- <MULTI_PHASE1>$MULTI_PHASE1</MULTI_PHASE1>
      <MULTI_PHASE2>$MULTI_PHASE2</MULTI_PHASE2>
      <MULTI_PHASE3>$MULTI_PHASE3</MULTI_PHASE3> -->
-     		
+
      <TEMPERATURE01>-1</TEMPERATURE01>
      <TEMPERATURE23>-1</TEMPERATURE23>
     </set>
   </paramSets>
-</autocampars> 
+</autocampars>
 
 DEFAULT_CONFIG;
 }
