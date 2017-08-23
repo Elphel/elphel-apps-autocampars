@@ -901,8 +901,7 @@ function init_cameras(){ // $page) { init can only be from default page as page 
 	$mask = 1; // init parameters
 	// TODO: Fix TRIG_MASTER early, before anything else
 //	$trig_last_names =   array();
-	// adding EXPOS - because setting with normal pars can desync
-	$trig_par_names =    array('TRIG', 'TRIG_CONDITION', 'TRIG_MASTER','TRIG_PERIOD', 'TRIG_OUT', 'EXPOS');
+	$trig_par_names =    array('TRIG', 'TRIG_CONDITION', 'TRIG_MASTER','TRIG_PERIOD', 'TRIG_OUT');
 	$delayed_par_names = array('COMPRESSOR_RUN', 'SENSOR_RUN', 'DAEMON_EN',
 			'DAEMON_EN_AUTOEXPOSURE', 'DAEMON_EN_STREAMER',
 			'DAEMON_EN_CCAMFTP','DAEMON_EN_CAMOGM', 'DAEMON_EN_TEMPERATURE');
@@ -1009,6 +1008,10 @@ function init_cameras(){ // $page) { init can only be from default page as page 
 				$frame_to_set += 4; // /Frame # 8 Adjust? So streamer will have at least 2 good frames in buffer?
 				log_msg ( "port ".$port. " setting @".$frame_to_set." DAEMON_EN= " . $all_daemon_en[$port]['DAEMON_EN'],0);
 				elphel_set_P_arr ( $port, $all_daemon_en[$port], $frame_to_set, ELPHEL_CONST_FRAMEPAIR_FORCE_NEWPROC );
+
+				// set exposure here
+				log_msg ( "port ".$port. " setting @".$frame_to_set." restoring exposure: EXPOS= " . $all_parToSet[$port]['EXPOS'] );
+				elphel_set_P_value ( $port, ELPHEL_EXPOS, $all_parToSet[$port]['EXPOS'], $frame_to_set, ELPHEL_CONST_FRAMEPAIR_FORCE_NEWPROC );
 
 				if ($GLOBALS['master_port'] == $port) {
 					$GLOBALS['camera_state_arr']['frames_skip'] = $frame_to_set - elphel_get_frame ($GLOBALS['master_port']);
