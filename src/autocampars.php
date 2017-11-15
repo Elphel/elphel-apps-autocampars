@@ -617,7 +617,7 @@ function detect_camera(){
 			log_msg("boot", 0);
 
 			// Apply sensor mask from the application mode, update sysfs
-			$sensor_mask = get_application_mode (); // 20 bit - for each channel of each port and port multiplexers (typical Eyesis 0xf7777)
+			$sensor_mask = get_application_mode(); // 20 bit - for each channel of each port and port multiplexers (typical Eyesis 0xf7777)
 			log_msg(sprintf("Using sensor mask 0x%x", $sensor_mask));
 
 			$needupdate=0;
@@ -718,11 +718,12 @@ function detect_camera(){
 						print_r($output,1)."\ncommand return value=".$retval."\n");
 
 			} else {
-				respond_xml ('', 'Do not know how to initialize master camera '.primt_r($GLOBALS['camera_state_arr']['is_mt9p006'],1));
+				respond_xml ('', 'Do not know how to initialize master camera '.print_r($GLOBALS['camera_state_arr']['is_mt9p006'],1));
 			}
 			// can not exit until joined
 
         case 'PRE10359': // Entry point for Eyesis slave cameras that have 10359B multiplexers on their ports
+        	//log_msg('PRE10359 '.print_r($GLOBALS['port_mux'],1));
 			if ($GLOBALS['port_mux']) {
 				for($port = 0; $port < 4; $port++) {
 					if ($GLOBALS['port_mux'][$port] != 'none') {
@@ -1433,7 +1434,7 @@ function get_application_mode() {
 			respond_xml('','Unknown camdera type, '.print_r($GLOBALS['camera_state_arr'],1));
 	}
 	if ($GLOBALS['camera_state_arr']['application'] == 'MT9P006')
-	return $GLOBALS['camera_state_arr'];
+		return $GLOBALS['camera_state_arr'];
 }
 
 
@@ -1442,11 +1443,15 @@ function get_mt9p006_mode() {
 	$mode = intval($GLOBALS['camera_state_arr']['mode']);
 	// Use same 16-bit mask as in Eyesis?
 	// 1111 -> 1000100010001
-	$mode = ($mode & 1) | (($mode & 2) << 3) | (($mode & 4) << 6) | (($mode & 8) << 9);
+	//
+	if (($mode&0xf0000)==0){
+		$mode = ($mode & 1) | (($mode & 2) << 3) | (($mode & 4) << 6) | (($mode & 8) << 9);
+	}
+	
 	$GLOBALS['STOP_AFTER']=array_merge($GLOBALS['STOP_AFTER'],array( // overwrite specified fields, keep others
 			'BOOT'     =>           false,
 			'POWERED'  =>           false,
-			'PRE10359' =>           false,
+			'PRE10359' =>           true,
 			'BITSTREAM'=>           false,
 			'SENSORS_DETECTED'=>    false,
 			'SENSORS_SYNCHRONIZED'=>false,
@@ -2648,7 +2653,14 @@ function createDefaultConfig($version, $port, $multisensor = false, $eyesis_mode
 	// /overwrites
 	$TRIG_MASTER = 0; // modify for bottom 2 for eyesis? or rely on auto?
 	$TRIG = 4; // $multisensor ? 4 : 0;
-	$TRIG_PERIOD =    $eyesis_mode ?25000000 : 10000000; // 10 fps
+	
+	$appmode = get_application_mode();
+	if (($appmode&0xf0000)!=0){
+		$TRIG_PERIOD = 25000000;
+	}else{
+		$TRIG_PERIOD = $eyesis_mode ?25000000 : 10000000; // 10 fps
+	}
+	
 	$TRIG_CONDITION = $eyesis_mode ? 0x08000 : 0x00000;
 	$TRIG_OUT =       $eyesis_mode ? 0x20000 : 0x00000;
 	$MULTI_MODE = $multisensor ? 1 : 0;
