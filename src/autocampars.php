@@ -2709,6 +2709,14 @@ function createDefaultConfig($version, $port, $multisensor = false, $eyesis_mode
 				$TRIG_MASTER = $GLOBALS['master_port'];
 				break;
 		}
+		
+		if ($mode!=15){
+			if ($mode&0xf0000!=0){
+				log_msg("setting master port = ".$GLOBALS['master_port']);
+				$TRIG_MASTER = $GLOBALS['master_port'];
+			}
+		}
+		
 	}
 
 	log_msg("multisensor=".$multisensor.", SENSOR_PHASE=".$SENSOR_PHASE);
