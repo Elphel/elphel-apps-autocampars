@@ -377,13 +377,16 @@ if ($GLOBALS['init']) { // without --init will not do anything with the hardware
 foreach ( $GLOBALS['ports'] as $port ) {
 	if (! file_exists ( $GLOBALS['configDir'].'/'.$GLOBALS['configPaths'] [$port] )) {
 		get_sysfs_sensors();
-		$multisensor = $GLOBALS['port_mux'][$port]?1:0;
+
+		// if port is "true and not 'none'" then it's multisensor
+		$multisensor = ($GLOBALS['port_mux'][$port]&&($GLOBALS['port_mux'][$port]!='none'))?1:0;
 		log_msg("$port_mux on port $port = ". $GLOBALS['port_mux'][$port]. ", multisensor=$multisensor");
-		$confFile = fopen ( $GLOBALS['configDir'].'/'.$GLOBALS['configPaths'] [$port], "w+" );
+		$configPath = $GLOBALS['configDir'].'/'.$GLOBALS['configPaths'][$port];
+		$confFile = fopen ($configPath,"w+");
 		$eyesis_mode = $GLOBALS['camera_state_arr']['is_eyesis']?$GLOBALS['camera_state_arr']['mode']:0;
 		fwrite ( $confFile, createDefaultConfig ( $GLOBALS['version'], $port, $multisensor, $eyesis_mode ) ); // use multisensor defaults if 10359 +sensors present
 		fclose ( $confFile );
-		log_msg ( "port $port: autocampars.php created a new configuration file $configPath from defaults." . ($multisensor ? "This port is multiplexed":""). ($GLOBALS['camera_state_arr']['is_eyesis']  ? (' Used Eyesis mode, camera ' . $GLOBALS['camera_state_arr']['mode']? : ' Used multisensor mode.') : '') );\
+		log_msg ( "port $port: autocampars.php created a new configuration file $configPath from defaults." . ($multisensor ? " This port is multiplexed":""). ($GLOBALS['camera_state_arr']['is_eyesis']  ? (' Used Eyesis mode, camera ' . $GLOBALS['camera_state_arr']['mode']? : ' Used multisensor mode.') : '') );\
 		createConfigLink($port);
 		exec ( 'sync; overlay_sync 1' );
 	}
@@ -712,8 +715,14 @@ function detect_camera(){
 				log_msg("Initializing FPGA",3);
 				unset ($output);
 				exec ( 'autocampars.py localhost py393 hargs', $output, $retval );
+				
 				$GLOBALS['camera_state_arr']['state'] ='BITSTREAM';
 				write_php_ini ($GLOBALS['camera_state_arr'], $GLOBALS['camera_state_path'] );
+				
+				foreach($output as $k=>$v){
+					$output[$k] = str_replace('\n', "\n", $v);
+				}
+				
 				log_msg("COMMAND_OUTPUT for 'autocampars.py localhost py393 hargs-power_par12':\n".
 						print_r($output,1)."\ncommand return value=".$retval."\n");
 
@@ -763,6 +772,10 @@ function detect_camera(){
 			log_msg("All frames:\n"          .trim(file_get_contents('/sys/devices/soc0/elphel393-framepars@0/all_frames')),0);
 			log_msg('Frames: '. implode(", ",$frame_nums),0);
 
+			//$FORCE_SLEEP_TIME = 500000;
+			//log_msg("Force sleep  ".(0.000001*$FORCE_SLEEP_TIME)." s");
+			//usleep($FORCE_SLEEP_TIME);
+			
 		    // detection process only removes, not adds channels. So device tree and 10389 should enable maximum possible
 			$needupdate=0;
 			foreach ($GLOBALS['ports'] as $port) {
@@ -775,6 +788,9 @@ function detect_camera(){
 					$needupdate=1;
 				} else {
 					$channel_mask = elphel_get_P_value ( $port, ELPHEL_SENS_AVAIL);
+
+					//log_msg("ELPHEL_SENS_AVAIL = ".$channel_mask,2);
+					
 					if (!$channel_mask) {
 						if ($GLOBALS['port_mux']){
 							if ($GLOBALS['port_mux'][$port] != 'none'){
@@ -800,7 +816,7 @@ function detect_camera(){
 
 			// Collect results from slave channels that were running in parallel
 			$nrep =0;
-
+			
 			$GLOBALS['camera_state_arr']['state'] ='SENSORS_DETECTED';
 			write_php_ini ($GLOBALS['camera_state_arr'], $GLOBALS['camera_state_path'] );
 			log_msg('Reached state: '. $GLOBALS['camera_state_arr']['state']);
@@ -826,12 +842,16 @@ function detect_camera(){
 				}
 				elphel_set_P_value     ( $port, ELPHEL_TRIG_DELAY,                        0, ELPHEL_CONST_FRAME_IMMED);
 			}
+
 			usleep ($GLOBALS['camera_state_arr']['max_frame_time']); // > 1 frame, so all channels will get trigger parameters
+			
 			foreach ($GLOBALS['ports'] as $port) {
 				elphel_set_P_value ( $port, ELPHEL_TRIG, ELPHEL_CONST_TRIGMODE_SNAPSHOT, ELPHEL_CONST_FRAME_IMMED);
 			}
 			elphel_set_P_value ( $GLOBALS['master_port'], ELPHEL_TRIG_PERIOD,  1, ELPHEL_CONST_FRAME_IMMED, ELPHEL_CONST_FRAMEPAIR_FORCE_NEWPROC);
+			
 			usleep ($GLOBALS['camera_state_arr']['max_frame_time']);
+			
 			//Check that now all frame parameters are the same?
 			// reset sequencers
 			log_msg("Before reset sequencers:\n"          .trim(file_get_contents('/sys/devices/soc0/elphel393-framepars@0/all_frames')));
@@ -1047,7 +1067,7 @@ function init_cameras(){ // $page) { init can only be from default page as page 
 			// What else can be done with each camera individually
 			// Camera should be left in a free running mode?
 
-			log_msg ('Finalizing, current frames: '.file_get_contents('/sys/devices/soc0/elphel393-framepars@0/all_frames'));
+			log_msg ("Finalizing, current frames:\n".file_get_contents('/sys/devices/soc0/elphel393-framepars@0/all_frames'));
 			log_msg ("Remaining trigger parameters: ".print_r($GLOBALS['trig_pars'],1));
 
 
@@ -1197,7 +1217,8 @@ function get_sysfs_sensors()
 	// Master port is the lowest number of existing ports
 	if ($GLOBALS['ports']) $GLOBALS['master_port'] = $GLOBALS['ports'][0]; // first port
 	else  $GLOBALS['master_port'] = -1; // no sensor ports at all
-	log_msg ("Got sensor map from sysfs: ".str_sensors($GLOBALS['sensors']));
+	log_msg ("Got sensor map from sysfs: \n".str_sensors($GLOBALS['sensors']));
+	
 	if ($GLOBALS['port_mux']){
 		log_msg ("Got port multiplexer map from sysfs: ".implode(',', $GLOBALS['port_mux']));
 	}
@@ -1431,13 +1452,29 @@ function get_application_mode() {
 		case 'Eyesis4pi393':
 			return get_eyesis_mode();
 		default:
-			respond_xml('','Unknown camdera type, '.print_r($GLOBALS['camera_state_arr'],1));
+			respond_xml('','Unknown camera type, '.print_r($GLOBALS['camera_state_arr'],1));
 	}
 	if ($GLOBALS['camera_state_arr']['application'] == 'MT9P006')
 		return $GLOBALS['camera_state_arr'];
 }
 
-
+function update_max_frame_time(){
+	//updatemax frame time here
+	$cnt_max = 0;
+	foreach ($GLOBALS['ports'] as $port) {
+		$cnt = 0;
+		for ($chn=0; $chn<4;$chn++) {
+			if ($GLOBALS['sensors'][$port][$chn]!='none') {
+				$cnt++;
+			}
+		}
+		if ($cnt>$cnt_max) {
+			$cnt_max = $cnt;
+		}
+	}
+	$GLOBALS['camera_state_arr']['max_frame_time'] = $cnt_max*100000; // usec, should exceed longest initial free frame period
+	//log_msg("Updated max frame time to ".(0.000001*$GLOBALS['camera_state_arr']['max_frame_time'])." s");
+}
 
 function get_mt9p006_mode() {
 	$mode = intval($GLOBALS['camera_state_arr']['mode']);
@@ -1459,13 +1496,15 @@ function get_mt9p006_mode() {
 			'SEQUENCERS_ADVANCED'=> false,
 			'INITIALIZED'=>         false));
 	$GLOBALS['camera_state_arr']['is_master'] = 1;
-	$GLOBALS['camera_state_arr']['max_frame_time'] = 100000; // usec, should exceed longest initial free frame period
+	
+	//$GLOBALS['camera_state_arr']['max_frame_time'] = 100000; // usec, should exceed longest initial free frame period
+	update_max_frame_time();
+
 	$GLOBALS['camera_state_arr']['is_mt9p006'] = 1;
 
 	write_php_ini ($GLOBALS['camera_state_arr'], $GLOBALS['camera_state_path'] );
 	return $mode;
 }
-
 
 /**
  * Eyesis application modes:
