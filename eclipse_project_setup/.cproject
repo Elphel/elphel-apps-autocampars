@@ -18,7 +18,7 @@
 					<folderInfo id="0.1294322758." name="/" resourcePath="">
 						<toolChain id="org.eclipse.cdt.build.core.prefbase.toolchain.1108581264" name="No ToolChain" resourceTypeBasedDiscovery="false" superClass="org.eclipse.cdt.build.core.prefbase.toolchain">
 							<targetPlatform id="org.eclipse.cdt.build.core.prefbase.toolchain.1108581264.424127023" name=""/>
-							<builder arguments="apps-autocampars" command="${workspace_loc:/elphel-apps-autocampars/run_bitbake.sh}" enableCleanBuild="false" id="org.eclipse.cdt.build.core.settings.default.builder.1258366388" incrementalBuildTarget="-c compile -f" keepEnvironmentInBuildfile="false" managedBuildOn="false" name="Gnu Make Builder" superClass="org.eclipse.cdt.build.core.settings.default.builder"/>
+							<builder arguments="apps-autocampars" command="${workspace_loc:/elphel-apps-autocampars/scripts/run_bitbake.sh}" enableCleanBuild="false" id="org.eclipse.cdt.build.core.settings.default.builder.1258366388" incrementalBuildTarget="-c compile -f" keepEnvironmentInBuildfile="false" managedBuildOn="false" name="Gnu Make Builder" superClass="org.eclipse.cdt.build.core.settings.default.builder"/>
 							<tool id="org.eclipse.cdt.build.core.settings.holder.libs.1885972775" name="holder for library settings" superClass="org.eclipse.cdt.build.core.settings.holder.libs"/>
 							<tool id="org.eclipse.cdt.build.core.settings.holder.2146200400" name="Assembly" superClass="org.eclipse.cdt.build.core.settings.holder">
 								<option id="org.eclipse.cdt.build.core.settings.holder.symbols.463610725" name="Symbols" superClass="org.eclipse.cdt.build.core.settings.holder.symbols" valueType="definedSymbols">

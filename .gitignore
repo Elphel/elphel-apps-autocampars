@@ -6,7 +6,6 @@ attic/*
 /.pydevproject
 /.externalToolBuilders
 /.settings
-/image
 .directory
 .depend
 generated*
@@ -15,3 +14,8 @@ bitbake-logs
 autocampars
 launch_php_script
 temp
+
+doxygen.tag
+/image
+/scripts
+/html
