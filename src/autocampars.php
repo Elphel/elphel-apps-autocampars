@@ -1095,6 +1095,7 @@ function init_cameras(){ // $page) { init can only be from default page as page 
 				elphel_set_P_arr ($GLOBALS['master_port'], $GLOBALS['trig_pars']); // set other parameters - they will not take effect immediately
 				usleep ($GLOBALS['camera_state_arr']['max_frame_time']);
 				if ($trig_period){
+					elphel_set_P_value ( $GLOBALS['master_port'], ELPHEL_TRIG_PERIOD,  $trig_period, 0);
 					elphel_set_P_value ( $GLOBALS['master_port'], ELPHEL_TRIG_PERIOD,  $trig_period, ELPHEL_CONST_FRAME_IMMED);
 					log_msg("Started camera in periodic self-triggered mode, period = ".(0.00000001*$trig_period)." s",3);
 				} else { // manually advance frames
