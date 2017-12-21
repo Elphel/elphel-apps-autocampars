@@ -15,6 +15,10 @@ autocampars
 launch_php_script
 temp
 
+all_sources.lst
+excluding.lst
+including.lst
+
 doxygen.tag
 /image
 /scripts
