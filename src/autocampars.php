@@ -1098,6 +1098,7 @@ function init_cameras(){ // $page) { init can only be from default page as page 
 					// The line below applies the parameter in a normal way - otherwise, if unlucky, TRIG_PERIOD can jump
 					// between 1 and $trig_period.
 					elphel_set_P_value ( $GLOBALS['master_port'], ELPHEL_TRIG_PERIOD,  $trig_period, 0);
+					elphel_set_P_value ( $GLOBALS['master_port'], ELPHEL_TRIG_PERIOD,  $trig_period);
 					// Set parameter immediately
 					elphel_set_P_value ( $GLOBALS['master_port'], ELPHEL_TRIG_PERIOD,  $trig_period, ELPHEL_CONST_FRAME_IMMED);
 					log_msg("Started camera in periodic self-triggered mode, period = ".(0.00000001*$trig_period)." s",3);
