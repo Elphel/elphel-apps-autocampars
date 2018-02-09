@@ -726,7 +726,24 @@ function detect_camera(){
 				log_msg("COMMAND_OUTPUT for 'autocampars.py localhost py393 hargs-power_par12':\n".
 						print_r($output,1)."\ncommand return value=".$retval."\n");
 
-			} else {
+			} else if ($GLOBALS['camera_state_arr']['is_mt9f002']){
+				// 2018/02/09: TODO: test
+				log_msg("Initializing FPGA for HISPI iface",3);
+				unset ($output);
+				// /usr/local/verilog/hargs-hispi - does not exist yet
+				exec ( 'autocampars.py localhost py393 hargs-hispi', $output, $retval );
+				
+				$GLOBALS['camera_state_arr']['state'] ='BITSTREAM';
+				write_php_ini ($GLOBALS['camera_state_arr'], $GLOBALS['camera_state_path'] );
+				
+				foreach($output as $k=>$v){
+					$output[$k] = str_replace('\n', "\n", $v);
+				}
+				
+				log_msg("COMMAND_OUTPUT for 'autocampars.py localhost py393 hargs-power_par12':\n".
+						print_r($output,1)."\ncommand return value=".$retval."\n");
+				
+			}else {
 				respond_xml ('', 'Do not know how to initialize master camera '.print_r($GLOBALS['camera_state_arr']['is_mt9p006'],1));
 			}
 			// can not exit until joined
@@ -1454,11 +1471,15 @@ function get_application_mode() {
 	switch ($GLOBALS['camera_state_arr']['application']){
 		case 'MT9P006':
 			return get_mt9p006_mode();
+		case 'MT9F002':
+			// 2018/02/09: TODO: test
+			return get_mt9f002_mode();
 		case 'Eyesis4pi393':
 			return get_eyesis_mode();
 		default:
 			respond_xml('','Unknown camera type, '.print_r($GLOBALS['camera_state_arr'],1));
 	}
+	// 2018/02/09: add other sensors as well?
 	if ($GLOBALS['camera_state_arr']['application'] == 'MT9P006')
 		return $GLOBALS['camera_state_arr'];
 }
@@ -1508,6 +1529,18 @@ function get_mt9p006_mode() {
 	$GLOBALS['camera_state_arr']['is_mt9p006'] = 1;
 
 	write_php_ini ($GLOBALS['camera_state_arr'], $GLOBALS['camera_state_path'] );
+	return $mode;
+}
+
+// 2018/02/09: TODO: test
+function get_mt9f002_mode() {
+	
+	$mode = get_mt9p006_mode();
+	
+	$GLOBALS['camera_state_arr']['is_mt9p006'] = 0;
+	$GLOBALS['camera_state_arr']['is_mt9f002'] = 1;
+	write_php_ini ($GLOBALS['camera_state_arr'], $GLOBALS['camera_state_path'] );
+	
 	return $mode;
 }
 
