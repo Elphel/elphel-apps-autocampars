@@ -605,6 +605,7 @@ function detect_camera(){
 	log_msg("detect_camera()",0);
 	$GLOBALS['camera_state_arr']['max_latency'] =    5; // frames to manually advance
 	write_php_ini ($GLOBALS['camera_state_arr'], $GLOBALS['camera_state_path'] );
+	// 52 is MT9x00x, update later
 	$sensor_code = 52;
 	log_msg("detect_camera():\n".str_sensors($GLOBALS['sensors']),0);
 	log_msg("ports:". implode(", ",$GLOBALS['ports']));
@@ -740,8 +741,11 @@ function detect_camera(){
 					$output[$k] = str_replace('\n', "\n", $v);
 				}
 				
-				log_msg("COMMAND_OUTPUT for 'autocampars.py localhost py393 hargs-power_par12':\n".
+				log_msg("COMMAND_OUTPUT for 'autocampars.py localhost py393 hargs-hispi':\n".
 						print_r($output,1)."\ncommand return value=".$retval."\n");
+				
+				// sensor's code from c313a.h
+				$sensor_code = 56;
 				
 			}else {
 				respond_xml ('', 'Do not know how to initialize master camera '.print_r($GLOBALS['camera_state_arr']['is_mt9p006'],1));
