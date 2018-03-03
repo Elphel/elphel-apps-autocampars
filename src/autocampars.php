@@ -754,6 +754,10 @@ function detect_camera(){
 
         case 'PRE10359': // Entry point for Eyesis slave cameras that have 10359B multiplexers on their ports
         	//log_msg('PRE10359 '.print_r($GLOBALS['port_mux'],1));
+        	
+        	// previous stage: just fell through - was not break;
+        	// TODO: process $retval error case
+        	
 			if ($GLOBALS['port_mux']) {
 				for($port = 0; $port < 4; $port++) {
 					if ($GLOBALS['port_mux'][$port] != 'none') {
