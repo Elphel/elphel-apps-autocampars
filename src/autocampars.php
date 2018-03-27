@@ -261,6 +261,8 @@ $GLOBALS['configs'] = array();
 $GLOBALS['init'] = false;
 $GLOBALS['daemon'] = false;
 
+$GLOBALS['driver_disabler'] = $GLOBALS['configDir']."/disable_driver";
+
 log_open();
 
 
@@ -1415,11 +1417,19 @@ function get_application_mode() {
 		if ($xml === false) {
 			log_msg("10389 board not present");
 		} else {
-			log_msg ( 'Application - ' . (( string ) $xml->app) . ', mode: ' . (( string ) $xml->mode) . "\n" , 3);
+			
+			// disable driver here
+			if (is_file($GLOBALS['driver_disabler'])){
+				$mode = 0;
+			}else{
+				$mode = intval($xml->mode);
+			}
+			
+			log_msg ( 'Application - ' . (( string ) $xml->app) . ', mode: ' . (( string ) $mode) . "\n" , 3);
 			$GLOBALS ['camera_state_arr'] ['rev10389'] = ''.$xml->rev;
 			if ((( string ) $xml->app) != '') {
 				$GLOBALS ['camera_state_arr'] ['application'] = ''.$xml->app;
-				$GLOBALS ['camera_state_arr'] ['mode'] = intval($xml->mode);
+				$GLOBALS ['camera_state_arr'] ['mode'] = $mode;
 			}
 		}
 		write_php_ini ($GLOBALS['camera_state_arr'], $GLOBALS['camera_state_path'] );
