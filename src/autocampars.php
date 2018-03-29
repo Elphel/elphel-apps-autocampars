@@ -261,7 +261,7 @@ $GLOBALS['configs'] = array();
 $GLOBALS['init'] = false;
 $GLOBALS['daemon'] = false;
 
-$GLOBALS['driver_disabler'] = $GLOBALS['configDir']."/disable_driver";
+$GLOBALS['driver_disabler_file'] = $GLOBALS['configDir']."/disable_driver";
 
 log_open();
 
@@ -782,18 +782,29 @@ function detect_camera(){
 		case 'BITSTREAM':
             // ***** Sensor detection stage is the same for all sensors so far, can be combined Eyesis/non-Eyesis
 			$frame_nums=array(-1,-1,-1,-1);
-			// Open files for only enabled channels
-			foreach ($GLOBALS['ports'] as $port) {
-				$f = fopen ( $GLOBALS ['framepars_paths'] [$port], "w+");
-				fseek ( $f, ELPHEL_LSEEK_FRAMEPARS_INIT, SEEK_END );
-				// This is for 10359 - probably still OK for non-10359
-				elphel_set_P_value ( $port, ELPHEL_MULTI_CFG, 1); // cy22393 does not work on 10359. Not enough 3.3V?
-				                                                  // now it may be OK (with separate 10359 power)
-				elphel_set_P_value ( $port, ELPHEL_SENSOR, 0x00, 0, ELPHEL_CONST_FRAMEPAIR_FORCE_NEWPROC );// / will start detection
-				$frame_nums[$port]=elphel_get_frame($port);
-				fclose($f);
-				log_msg("Started detection for sensor port ".$port);
+			
+			if (!is_file($GLOBALS['driver_disabler_file'])){
+				// Open files for only enabled channels
+				foreach ($GLOBALS['ports'] as $port) {
+					$f = fopen ( $GLOBALS ['framepars_paths'] [$port], "w+");
+					fseek ( $f, ELPHEL_LSEEK_FRAMEPARS_INIT, SEEK_END );
+					// This is for 10359 - probably still OK for non-10359
+					elphel_set_P_value ( $port, ELPHEL_MULTI_CFG, 1); // cy22393 does not work on 10359. Not enough 3.3V?
+					                                                  // now it may be OK (with separate 10359 power)
+					elphel_set_P_value ( $port, ELPHEL_SENSOR, 0x00, 0, ELPHEL_CONST_FRAMEPAIR_FORCE_NEWPROC );// / will start detection
+					$frame_nums[$port]=elphel_get_frame($port);
+					fclose($f);
+					log_msg("Started detection for sensor port ".$port);
+				}
+			}else{
+				// init framepars anyways - sysfs was updated earlier
+				for($port=0;$port<4;$port++){
+					$f = fopen($GLOBALS['framepars_paths'][$port],"w+");
+					fseek ($f,ELPHEL_LSEEK_FRAMEPARS_INIT,SEEK_END);
+					fclose($f);
+				}
 			}
+			
 			log_msg("System FPGA version:   ".trim(file_get_contents('/sys/devices/soc0/elphel393-framepars@0/fpga_version')), 3);
 			log_msg("Sensor interface type: ".trim(file_get_contents('/sys/devices/soc0/elphel393-framepars@0/fpga_sensor_interface')), 3);
 			log_msg("All frames:\n"          .trim(file_get_contents('/sys/devices/soc0/elphel393-framepars@0/all_frames')),0);
@@ -1290,6 +1301,24 @@ function update_sysfs_sensors()
 	log_msg ("Updated sysfs sensor map");
 }
 
+/** Disable sensors per port, per subchannel to sysfs */
+function disable_sysfs_sensors(){	
+	for ($port=0; $port < 4; $port++){
+		for ($chn = 0; $chn < 4; $chn++){
+			$f = fopen ( $GLOBALS['sysfs_detect_sensors'] . '/sensor' . $port . $chn, 'w' );
+			fprintf($f,"%s",'none');
+			fclose ( $f );
+		}
+	}
+	for ($port=0; $port < 4; $port++){
+		$f = fopen ( $GLOBALS['sysfs_detect_sensors'] . '/port_mux' . $port, 'w' );
+		fprintf($f,"%s",'none');
+		fclose ( $f );
+	}
+	// re-read from sysfs, re-set $GLOBALS['ports'] and $GLOBALS['master_port']
+	log_msg ("Disabled sensors in sysfs sensor map");
+}
+
 function colorize($string, $color, $bold) {
 	$color = strtoupper($color);
 	$attr = array();
@@ -1418,14 +1447,15 @@ function get_application_mode() {
 			log_msg("10389 board not present");
 		} else {
 			
-			// disable driver here
-			if (is_file($GLOBALS['driver_disabler'])){
-				$mode = 0;
-			}else{
-				$mode = intval($xml->mode);
+			if (is_file($GLOBALS['driver_disabler_file'])){
+				log_msg("Ports will be disabled - found ".$GLOBALS['driver_disabler_file']." flag file");
+				//disable ports via sysfs
+				disable_sysfs_sensors();
 			}
 			
-			log_msg ( 'Application - ' . (( string ) $xml->app) . ', mode: ' . (( string ) $mode) . "\n" , 3);
+			$mode = intval($xml->mode);
+			
+			log_msg ( 'Application - ' . (( string ) $xml->app) . ', mode: ' . $mode . "\n" , 3);
 			$GLOBALS ['camera_state_arr'] ['rev10389'] = ''.$xml->rev;
 			if ((( string ) $xml->app) != '') {
 				$GLOBALS ['camera_state_arr'] ['application'] = ''.$xml->app;
