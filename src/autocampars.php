@@ -1448,7 +1448,7 @@ function get_application_mode() {
 		} else {
 			
 			if (is_file($GLOBALS['driver_disabler_file'])){
-				log_msg("Ports will be disabled - found ".$GLOBALS['driver_disabler_file']." flag file");
+				log_msg("Ports will be disabled - found ".$GLOBALS['driver_disabler_file']." flag file",4);
 				//disable ports via sysfs
 				disable_sysfs_sensors();
 			}
