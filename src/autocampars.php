@@ -1123,8 +1123,10 @@ function init_cameras(){ // $page) { init can only be from default page as page 
 			} else if (!array_key_exists('TRIG_CONDITION',$GLOBALS['trig_pars']) || !$GLOBALS['trig_pars']['TRIG_CONDITION'] || !isset ($curl_data)){
 			    log_msg ("array_key_exists('TRIG_CONDITION', GLOBALS['trig_pars'] = ".array_key_exists('TRIG_CONDITION',$GLOBALS['trig_pars']),0);
 			    log_msg ('GLOBALS[trig_pars][TRIG_CONDITION] = '.$GLOBALS['trig_pars']['TRIG_CONDITION'],0);
+
 			    // self-triggered mode
-			    $trig_condition = $GLOBALS['trig_pars']['TRIG_CONDITION'];
+			    $trig_condition = (array_key_exists('TRIG_CONDITION',$GLOBALS['trig_pars']))?$GLOBALS['trig_pars']['TRIG_CONDITION']:0;
+			    
 			    unset            ($GLOBALS['trig_pars']['TRIG_CONDITION']);
 			    unset($trig_period);
 			    if (array_key_exists('TRIG_PERIOD',$GLOBALS['trig_pars']) && ($GLOBALS['trig_pars']['TRIG_PERIOD'] > 255)){
