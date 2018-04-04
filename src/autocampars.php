@@ -1131,14 +1131,14 @@ function init_cameras(){ // $page) { init can only be from default page as page 
 					unset($GLOBALS['trig_pars']['TRIG_PERIOD']);
 				}
 				elphel_set_P_arr ($GLOBALS['master_port'], $GLOBALS['trig_pars']); // set other parameters - they will not take effect immediately
-				usleep ($GLOBALS['camera_state_arr']['max_frame_time']);
+				//usleep ($GLOBALS['camera_state_arr']['max_frame_time']);
 				if ($trig_period){
 					// The line below applies the parameter in a normal way - otherwise, if unlucky, TRIG_PERIOD can jump
 					// between 1 and $trig_period.
-					elphel_set_P_value ( $GLOBALS['master_port'], ELPHEL_TRIG_PERIOD,  $trig_period, 0);
+					//elphel_set_P_value ( $GLOBALS['master_port'], ELPHEL_TRIG_PERIOD,  $trig_period, 0);
 					elphel_set_P_value ( $GLOBALS['master_port'], ELPHEL_TRIG_PERIOD,  $trig_period);
 					// Set parameter immediately
-					elphel_set_P_value ( $GLOBALS['master_port'], ELPHEL_TRIG_PERIOD,  $trig_period, ELPHEL_CONST_FRAME_IMMED);
+					elphel_set_P_value ( $GLOBALS['master_port'], ELPHEL_TRIG_PERIOD,  $trig_period, ELPHEL_CONST_FRAME_IMMED, ELPHEL_CONST_FRAMEPAIR_FORCE_NEWPROC);
 					log_msg("Started camera in periodic self-triggered mode, period = ".(0.00000001*$trig_period)." s",3);
 				} else { // manually advance frames
 					if (!$GLOBALS['camera_state_arr']['frames_skip_more'] >  ELPHEL_CONST_FRAME_DEAFAULT_AHEAD){
@@ -1153,28 +1153,29 @@ function init_cameras(){ // $page) { init can only be from default page as page 
 				}
 				log_msg("Reached state ".$GLOBALS['camera_state_arr']['state']);
 			} else {
-				unset($trig_out);
-				unset($trig_period);
-				if (array_key_exists('TRIG_OUT',$GLOBALS['trig_pars']) && $GLOBALS['trig_pars']['TRIG_OUT']){
-					$trig_out = $GLOBALS['trig_pars']['TRIG_OUT'];
-					unset($GLOBALS['trig_pars']['TRIG_OUT']);
-				}
-				if (array_key_exists('TRIG_PERIOD',$GLOBALS['trig_pars']) && ($GLOBALS['trig_pars']['TRIG_PERIOD'] > 255)){
-					$trig_period = $GLOBALS['trig_pars']['TRIG_PERIOD'];
-					unset($GLOBALS['trig_pars']['TRIG_PERIOD']);
-				}
-				log_msg("trig_out = $trig_out");
-				log_msg("trig_period = $trig_period");
-				log_msg("remaining  GLOBALS[trig_pars] = ".print_r($GLOBALS['trig_pars'],1));
-
-				elphel_set_P_arr ($GLOBALS['master_port'], $GLOBALS['trig_pars']); // without TRIG_PERIOD and TRIG_OUT
-				for ($i = 0; $i<= ELPHEL_CONST_FRAME_DEAFAULT_AHEAD; $i++){
-					elphel_set_P_value ( $GLOBALS['master_port'], ELPHEL_TRIG_PERIOD,  1, ELPHEL_CONST_FRAME_IMMED, ELPHEL_CONST_FRAMEPAIR_FORCE_NEWPROC);
-					usleep ($GLOBALS['camera_state_arr']['max_frame_time']);
-					log_msg("4.Trigger (should stop) $i:\n".file_get_contents('/sys/devices/soc0/elphel393-framepars@0/all_frames'));
-				}
 				// Triggered input mode, not sure where input comes from
 				if (isset ($curl_data)) { // wait and collect responses
+					unset($trig_out);
+					unset($trig_period);
+					if (array_key_exists('TRIG_OUT',$GLOBALS['trig_pars']) && $GLOBALS['trig_pars']['TRIG_OUT']){
+						$trig_out = $GLOBALS['trig_pars']['TRIG_OUT'];
+						unset($GLOBALS['trig_pars']['TRIG_OUT']);
+					}
+					if (array_key_exists('TRIG_PERIOD',$GLOBALS['trig_pars']) && ($GLOBALS['trig_pars']['TRIG_PERIOD'] > 255)){
+						$trig_period = $GLOBALS['trig_pars']['TRIG_PERIOD'];
+						unset($GLOBALS['trig_pars']['TRIG_PERIOD']);
+					}
+					log_msg("trig_out = $trig_out");
+					log_msg("trig_period = $trig_period");
+					log_msg("remaining  GLOBALS[trig_pars] = ".print_r($GLOBALS['trig_pars'],1));
+	
+					elphel_set_P_arr ($GLOBALS['master_port'], $GLOBALS['trig_pars']); // without TRIG_PERIOD and TRIG_OUT
+					for ($i = 0; $i<= ELPHEL_CONST_FRAME_DEAFAULT_AHEAD; $i++){
+						elphel_set_P_value ( $GLOBALS['master_port'], ELPHEL_TRIG_PERIOD,  1, ELPHEL_CONST_FRAME_IMMED, ELPHEL_CONST_FRAMEPAIR_FORCE_NEWPROC);
+						usleep ($GLOBALS['camera_state_arr']['max_frame_time']);
+						log_msg("4.Trigger (should stop) $i:\n".file_get_contents('/sys/devices/soc0/elphel393-framepars@0/all_frames'));
+					}
+
 					log_msg("  trig_out = $trig_out");
 					log_msg("  trig_period = $trig_period");
 					log_msg("Remaining  GLOBALS[trig_pars] = ".print_r($GLOBALS['trig_pars'],1));
@@ -1207,8 +1208,16 @@ function init_cameras(){ // $page) { init can only be from default page as page 
 						}
 					}
 
-				} else{
-					log_msg ('All done that could be done - maybe more input triggers are needed');
+				}else{
+					$trig_condition = $GLOBALS['trig_pars']['TRIG_CONDITION'];
+					unset($GLOBALS['trig_pars']['TRIG_CONDITION']);
+					//$frame_to_set = elphel_get_frame($GLOBALS['master_port']) + ELPHEL_CONST_FRAME_DEAFAULT_AHEAD;
+					//elphel_set_P_arr  ($GLOBALS['master_port'], $GLOBALS['trig_pars'], $frame_to_set);
+					//elphel_set_P_value($GLOBALS['master_port'], ELPHEL_TRIG_CONDITION, $trig_condition, $frame_to_set+3);
+					elphel_set_P_arr  ($GLOBALS['master_port'], $GLOBALS['trig_pars'], ELPHEL_CONST_FRAME_IMMED, ELPHEL_CONST_FRAMEPAIR_FORCE_NEWPROC);
+					elphel_set_P_value($GLOBALS['master_port'], ELPHEL_TRIG_CONDITION, $trig_condition);
+					
+					log_msg ('Independently started camera (3). If not master camera - it will wait for external triggers');
 				}
 			}
 
