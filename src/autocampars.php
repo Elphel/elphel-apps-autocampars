@@ -1120,38 +1120,45 @@ function init_cameras(){ // $page) { init can only be from default page as page 
 				log_msg("Started camera in free running mode",3);
 				log_msg("Reached state ".$GLOBALS['camera_state_arr']['state']);
 
-			} else if (!array_key_exists('TRIG_CONDITION',$GLOBALS['trig_pars']) || !$GLOBALS['trig_pars']['TRIG_CONDITION']){
-				log_msg ("array_key_exists('TRIG_CONDITION', GLOBALS['trig_pars'] = ".array_key_exists('TRIG_CONDITION',$GLOBALS['trig_pars']),0);
-				log_msg ('GLOBALS[trig_pars][TRIG_CONDITION] = '.$GLOBALS['trig_pars']['TRIG_CONDITION'],0);
-					// self-triggered mode
-				unset ($GLOBALS['trig_pars']['TRIG_CONDITION']);
-				unset($trig_period);
-				if (array_key_exists('TRIG_PERIOD',$GLOBALS['trig_pars']) && ($GLOBALS['trig_pars']['TRIG_PERIOD'] > 255)){
-					$trig_period = $GLOBALS['trig_pars']['TRIG_PERIOD'];
-					unset($GLOBALS['trig_pars']['TRIG_PERIOD']);
-				}
-				elphel_set_P_arr ($GLOBALS['master_port'], $GLOBALS['trig_pars']); // set other parameters - they will not take effect immediately
-				//usleep ($GLOBALS['camera_state_arr']['max_frame_time']);
-				if ($trig_period){
-					// The line below applies the parameter in a normal way - otherwise, if unlucky, TRIG_PERIOD can jump
-					// between 1 and $trig_period.
-					//elphel_set_P_value ( $GLOBALS['master_port'], ELPHEL_TRIG_PERIOD,  $trig_period, 0);
-					elphel_set_P_value ( $GLOBALS['master_port'], ELPHEL_TRIG_PERIOD,  $trig_period);
-					// Set parameter immediately
-					elphel_set_P_value ( $GLOBALS['master_port'], ELPHEL_TRIG_PERIOD,  $trig_period, ELPHEL_CONST_FRAME_IMMED, ELPHEL_CONST_FRAMEPAIR_FORCE_NEWPROC);
-					log_msg("Started camera in periodic self-triggered mode, period = ".(0.00000001*$trig_period)." s",3);
-				} else { // manually advance frames
-					if (!$GLOBALS['camera_state_arr']['frames_skip_more'] >  ELPHEL_CONST_FRAME_DEAFAULT_AHEAD){
-						$GLOBALS['camera_state_arr']['frames_skip_more'] =  ELPHEL_CONST_FRAME_DEAFAULT_AHEAD + 1;
-					}
-					log_msg("Skipping  ".$GLOBALS['camera_state_arr']['frames_skip_more']." more frames");
-					for ($i = 0; $i<= $GLOBALS['camera_state_arr']['frames_skip_more']; $i++){
-						elphel_set_P_value ( $GLOBALS['master_port'], ELPHEL_TRIG_PERIOD,  1, ELPHEL_CONST_FRAME_IMMED, ELPHEL_CONST_FRAMEPAIR_FORCE_NEWPROC);
-						usleep ($GLOBALS['camera_state_arr']['max_frame_time']);
-						log_msg("3.Trigger $i:\n".file_get_contents('/sys/devices/soc0/elphel393-framepars@0/all_frames'));
-					}
-				}
-				log_msg("Reached state ".$GLOBALS['camera_state_arr']['state']);
+			} else if (!array_key_exists('TRIG_CONDITION',$GLOBALS['trig_pars']) || !$GLOBALS['trig_pars']['TRIG_CONDITION'] || !isset ($curl_data)){
+			    log_msg ("array_key_exists('TRIG_CONDITION', GLOBALS['trig_pars'] = ".array_key_exists('TRIG_CONDITION',$GLOBALS['trig_pars']),0);
+			    log_msg ('GLOBALS[trig_pars][TRIG_CONDITION] = '.$GLOBALS['trig_pars']['TRIG_CONDITION'],0);
+			    // self-triggered mode
+			    $trig_condition = $GLOBALS['trig_pars']['TRIG_CONDITION'];
+			    unset            ($GLOBALS['trig_pars']['TRIG_CONDITION']);
+			    unset($trig_period);
+			    if (array_key_exists('TRIG_PERIOD',$GLOBALS['trig_pars']) && ($GLOBALS['trig_pars']['TRIG_PERIOD'] > 255)){
+			        $trig_period = $GLOBALS['trig_pars']['TRIG_PERIOD'];
+			        unset($GLOBALS['trig_pars']['TRIG_PERIOD']);
+			    }
+			    elphel_set_P_arr ($GLOBALS['master_port'], $GLOBALS['trig_pars']); // set other parameters - they will not take effect immediately
+			    //usleep ($GLOBALS['camera_state_arr']['max_frame_time']);
+			    if ($trig_period){
+			        // The line below applies the parameter in a normal way - otherwise, if unlucky, TRIG_PERIOD can jump
+			        // between 1 and $trig_period.
+			        //elphel_set_P_value ( $GLOBALS['master_port'], ELPHEL_TRIG_PERIOD,  $trig_period, 0);
+			        //					elphel_set_P_value ( $GLOBALS['master_port'], ELPHEL_TRIG_PERIOD,  $trig_period);
+			        // Set parameter immediately
+			        //				    log_msg("pre3.Trigger $i:\n".file_get_contents('/sys/devices/soc0/elphel393-framepars@0/all_frames'));
+			        elphel_set_P_value ( $GLOBALS['master_port'], ELPHEL_TRIG_PERIOD,  $trig_period, ELPHEL_CONST_FRAME_IMMED, ELPHEL_CONST_FRAMEPAIR_FORCE_NEWPROC);
+			        elphel_set_P_value ( $GLOBALS['master_port'], ELPHEL_TRIG_CONDITION,   $trig_condition);
+			        log_msg("Started camera in periodic self-triggered mode, period = ".(0.00000001*$trig_period)." s, trig_condition = ".dechex($trig_condition));
+			    } else { // manually advance frames
+			        if (!$GLOBALS['camera_state_arr']['frames_skip_more'] >  ELPHEL_CONST_FRAME_DEAFAULT_AHEAD){
+			            $GLOBALS['camera_state_arr']['frames_skip_more'] =  ELPHEL_CONST_FRAME_DEAFAULT_AHEAD + 1;
+			        }
+			        log_msg("Skipping  ".$GLOBALS['camera_state_arr']['frames_skip_more']." more frames");
+			        for ($i = 0; $i<= $GLOBALS['camera_state_arr']['frames_skip_more']; $i++){
+			            elphel_set_P_value ( $GLOBALS['master_port'], ELPHEL_TRIG_PERIOD,  1, ELPHEL_CONST_FRAME_IMMED, ELPHEL_CONST_FRAMEPAIR_FORCE_NEWPROC);
+			            usleep ($GLOBALS['camera_state_arr']['max_frame_time']);
+			            log_msg("3.Trigger $i:\n".file_get_contents('/sys/devices/soc0/elphel393-framepars@0/all_frames'));
+			        }
+			        elphel_set_P_value ( $GLOBALS['master_port'], ELPHEL_TRIG_CONDITION,   $trig_condition, ELPHEL_CONST_FRAME_IMMED, ELPHEL_CONST_FRAMEPAIR_FORCE_NEWPROC);
+			    }
+			    log_msg("trig_condition=".$trig_condition);
+			    log_msg("last3 frames:\n".file_get_contents('/sys/devices/soc0/elphel393-framepars@0/all_frames'));
+			    log_msg("GLOBALS['trig_pars']:\n".print_r($GLOBALS['trig_pars'],1));
+			    log_msg("Reached state ".$GLOBALS['camera_state_arr']['state']);
 			} else {
 				// Triggered input mode, not sure where input comes from
 				if (isset ($curl_data)) { // wait and collect responses
