@@ -748,9 +748,32 @@ function detect_camera(){
 				
 				// sensor's code from c313a.h
 				$sensor_code = 56;
-				
+
+			} else if ($GLOBALS['camera_state_arr']['is_lepton35']){
+			    // 2018/02/09: TODO: test
+			    log_msg("Initializing FPGA for VOSPI iface",3);
+			    unset ($output);
+			    // /usr/local/verilog/hargs-hispi - does not exist yet
+			    exec ( 'autocampars.py localhost py393 hargs-vospi', $output, $retval );
+			    
+			    $GLOBALS['camera_state_arr']['state'] ='BITSTREAM';
+			    write_php_ini ($GLOBALS['camera_state_arr'], $GLOBALS['camera_state_path'] );
+			    
+			    foreach($output as $k=>$v){
+			        $output[$k] = str_replace('\n', "\n", $v);
+			    }
+			    
+			    log_msg("COMMAND_OUTPUT for 'autocampars.py localhost py393 hargs-vospi':\n".
+			        print_r($output,1)."\ncommand return value=".$retval."\n");
+			    
+			    // sensor's code from c313a.h
+			    $sensor_code = 65;
+			    
 			}else {
-				respond_xml ('', 'Do not know how to initialize master camera '.print_r($GLOBALS['camera_state_arr']['is_mt9p006'],1));
+				respond_xml ('', 'Do not know how to initialize master camera '
+				    .print_r($GLOBALS['camera_state_arr']['is_mt9p006'],1)
+				    .print_r($GLOBALS['camera_state_arr']['is_lepton35'],1)
+				    );
 			}
 			// can not exit until joined
 
@@ -1542,6 +1565,9 @@ function get_application_mode() {
 			return get_mt9f002_mode();
 		case 'Eyesis4pi393':
 			return get_eyesis_mode();
+		case 'LEPTON35':
+		    return get_lepton35_mode();
+		    
 		default:
 			respond_xml('','Unknown camera type, '.print_r($GLOBALS['camera_state_arr'],1));
 	}
@@ -1609,6 +1635,18 @@ function get_mt9f002_mode() {
 	
 	return $mode;
 }
+
+function get_lepton35_mode() {
+    
+    $mode = get_mt9p006_mode();
+    
+    $GLOBALS['camera_state_arr']['is_mt9p006'] = 0;
+    $GLOBALS['camera_state_arr']['is_lepton35'] = 1;
+    write_php_ini ($GLOBALS['camera_state_arr'], $GLOBALS['camera_state_path'] );
+    
+    return $mode;
+}
+
 
 /**
  * Eyesis application modes:
