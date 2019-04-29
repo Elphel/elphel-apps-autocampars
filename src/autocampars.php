@@ -767,7 +767,7 @@ function detect_camera(){
 			        print_r($output,1)."\ncommand return value=".$retval."\n");
 			    
 			    // sensor's code from c313a.h
-			    $sensor_code = 65;
+			    $sensor_code = 68; // TODO: ************** Import as PHP constant? ***********
 			    
 			}else {
 				respond_xml ('', 'Do not know how to initialize master camera '
