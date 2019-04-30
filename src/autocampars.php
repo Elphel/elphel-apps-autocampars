@@ -2873,8 +2873,11 @@ function createDefaultConfig($version, $port, $multisensor = false, $eyesis_mode
 	$HISTWND_RHEIGHT = 0x8000;
 	$HISTWND_RLEFT = 0x8000;
 	$HISTWND_RTOP = 0x8000;
-	$COLOR = 0;
-	$SENSOR_PHASE =  $multisensor ? 0x55 : 0x15;
+    $COLOR = 0;
+    //old:
+    //$SENSOR_PHASE =  $multisensor ? 0x55 : 0x15;
+    //new:
+    $SENSOR_PHASE =  $multisensor ? 0x55 : 0x00;
 
 	/*
 	* if ($GLOBALS['camera_state_arr']['application']=="Eyesis4pi393"){ //get_eyesis_mode
