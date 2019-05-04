@@ -892,9 +892,73 @@ function detect_camera(){
 		case 'SENSORS_DETECTED':
 			// Program trigger modes (inactive), stop and reset command sequencers
 		    if ($GLOBALS['camera_state_arr']['is_lepton35']){
-		        log_msg('Nothing currently to do here for Lepton 3.5 sensors');
+		        log_msg('Temporary Lepton 3.5 code');
+		        foreach ($GLOBALS['ports'] as $port) {
+		            if ($port==$GLOBALS['master_port']){
+		                elphel_set_P_value ( $port, ELPHEL_TRIG_MASTER, $GLOBALS['master_port'], ELPHEL_CONST_FRAME_IMMED);
+		                elphel_set_P_value ( $port, ELPHEL_TRIG_PERIOD,                       0, ELPHEL_CONST_FRAME_IMMED);
+		                elphel_set_P_value ( $port, ELPHEL_TRIG_BITLENGTH,                    0, ELPHEL_CONST_FRAME_IMMED);
+		                elphel_set_P_value ( $port, ELPHEL_EXTERN_TIMESTAMP,                  1, ELPHEL_CONST_FRAME_IMMED);
+		                elphel_set_P_value ( $port, ELPHEL_XMIT_TIMESTAMP,                    1, ELPHEL_CONST_FRAME_IMMED);
+		                elphel_set_P_value ( $port, ELPHEL_TRIG_OUT,                    0x00000, ELPHEL_CONST_FRAME_IMMED);
+		                elphel_set_P_value ( $port, ELPHEL_TRIG_CONDITION,              0x00000, ELPHEL_CONST_FRAME_IMMED);
+		            }
+		            elphel_set_P_value     ( $port, ELPHEL_TRIG_DELAY,                        0, ELPHEL_CONST_FRAME_IMMED);
+		        }
+		        usleep ($GLOBALS['camera_state_arr']['max_frame_time']); // > 1 frame, so all channels will get trigger parameters
+/*
+ * Mo snapshot mode in Lepton		        
+		        foreach ($GLOBALS['ports'] as $port) {
+		            elphel_set_P_value ( $port, ELPHEL_TRIG, ELPHEL_CONST_TRIGMODE_SNAPSHOT, ELPHEL_CONST_FRAME_IMMED);
+		        }
+		        
+		        elphel_set_P_value ( $GLOBALS['master_port'], ELPHEL_TRIG_PERIOD,  1, ELPHEL_CONST_FRAME_IMMED, ELPHEL_CONST_FRAMEPAIR_FORCE_NEWPROC);
+		        
+		        usleep ($GLOBALS['camera_state_arr']['max_frame_time']);
+*/		        
+		        //Check that now all frame parameters are the same?
+		        // reset sequencers
+		        log_msg("Before reset sequencers:\n"          .trim(file_get_contents('/sys/devices/soc0/elphel393-framepars@0/all_frames')));
+		        for ($port=0; $port < 4; $port++){
+		            $f = fopen ( $GLOBALS['sysfs_frame_seq'].$port, 'w' ); fwrite($f,'0',1); fclose ( $f );
+		            $f = fopen ( $GLOBALS['sysfs_i2c_seq'].$port, 'w' );   fwrite($f,'3',1); fclose ( $f ); // reset+run (copy frame number from frame_seq)
+		            if (!in_array($port, $GLOBALS['ports'])) {
+		                log_msg("Disabling sensor port  ".$port);
+		                $f = fopen ( $GLOBALS['sysfs_chn_en'].$port, 'w' );    fwrite($f,'0',1); fclose ( $f ); // disable sensor channel
+		            }
+		        }
+		        log_msg("After reset sequencers:\n"          .trim(file_get_contents('/sys/devices/soc0/elphel393-framepars@0/all_frames')));
+		        // ======= First trigger, frame # = 1 ========.
+/*
+ * // no trigger mode in Lepton		        
+		        elphel_set_P_value ( $GLOBALS['master_port'], ELPHEL_TRIG_PERIOD,  1, ELPHEL_CONST_FRAME_IMMED, ELPHEL_CONST_FRAMEPAIR_FORCE_NEWPROC);
+		        usleep ($GLOBALS['camera_state_arr']['max_frame_time']); // > 1 frame, so all channels will get trigger parameters? // 0 0 0 0 -> 1 1 1 1
+		        log_msg("After single trigger:\n"          .trim(file_get_contents('/sys/devices/soc0/elphel393-framepars@0/all_frames')));
+		        //echo "9. frames:\n"; for ($ii=0;$ii<4;$ii++) $frame_nums[$ii]=elphel_get_frame($ii); print_r($frame_nums);
+*/
+		        $GLOBALS['camera_state_arr']['state'] ='SENSORS_SYNCHRONIZED';
+		        write_php_ini ($GLOBALS['camera_state_arr'], $GLOBALS['camera_state_path'] );
+		        log_msg('Frames: '. implode(", ",$frame_nums));
+		        log_msg('Reached state: '. $GLOBALS['camera_state_arr']['state']);
+		        
+		        if (isset ($curl_data)){ // wait and collect responses
+		            $enable_echo = !array_key_exists('REQUEST_METHOD',$_SERVER);
+		            if ($enable_echo) echo colorize("Waiting slaves to finish (number left): ",'YELLOW',0);
+		            $results =  curl_multi_finish($curl_data, true, 0, $enable_echo); // Switch true -> false if errors are reported (other output damaged XML)
+		            if ($enable_echo) echo colorize(" DONE\n",'GREEN',0);
+		            log_msg('curl_multi returned: '.print_r($results,1),0);
+		        }
+		        if ($GLOBALS['camera_state_arr']['exit_stage'] == $GLOBALS['camera_state_arr']['state']){
+		            respond_xml($GLOBALS['camera_state_arr']['state']);
+		        }
+		        if ($GLOBALS['STOP_AFTER'][$GLOBALS['camera_state_arr']['state']]) break; // will break anyway
+		        
+		        
 		        break;
 		    }
+		    
+		    // Other than Lepton sensors
+		    
 			foreach ($GLOBALS['ports'] as $port) {
 				if ($port==$GLOBALS['master_port']){
 					elphel_set_P_value ( $port, ELPHEL_TRIG_MASTER, $GLOBALS['master_port'], ELPHEL_CONST_FRAME_IMMED);
@@ -2884,8 +2948,10 @@ function createDefaultConfig($version, $port, $multisensor = false, $eyesis_mode
 	$HISTWND_RTOP = 0x8000;
 	if ($lepton35) {
 	    $COLOR = 15; // raw
+	    $BITS =  16;
 	} else {
-        $COLOR = 0;
+        $COLOR =  0;
+        $BITS =   8;
 	}
     //old:
     //$SENSOR_PHASE =  $multisensor ? 0x55 : 0x15;
@@ -3815,7 +3881,7 @@ DEFAULT_CONFIG
      <COLOR>$COLOR</COLOR>
      <FRAMESYNC_DLY>0</FRAMESYNC_DLY>
      <PF_HEIGHT>0</PF_HEIGHT>
-     <BITS>8</BITS>
+     <BITS>$BITS</BITS>
      <SHIFTL>0</SHIFTL>
      <FPNS>0</FPNS>
      <FPNM>0</FPNM>
