@@ -668,7 +668,7 @@ function detect_camera(){
 				log_msg ('Current state: ' . $GLOBALS['camera_state_arr']['state']);
 			}
 
-			// Now IPs of slave cameras are know - reboot them (will exit anyway)
+			// Now IPs of slave cameras are known - reboot them (will exit anyway)
 			if ($GLOBALS['camera_state_arr']['state'] == 'REBOOT') {
 				reboot_all_if_master(); // will exit anyway (do nothing if not master), exit anyway
 			}
@@ -891,6 +891,10 @@ function detect_camera(){
 			}
 		case 'SENSORS_DETECTED':
 			// Program trigger modes (inactive), stop and reset command sequencers
+		    if ($GLOBALS['camera_state_arr']['is_lepton35']){
+		        log_msg('Nothing currently to do here for Lepton 3.5 sensors');
+		        break;
+		    }
 			foreach ($GLOBALS['ports'] as $port) {
 				if ($port==$GLOBALS['master_port']){
 					elphel_set_P_value ( $port, ELPHEL_TRIG_MASTER, $GLOBALS['master_port'], ELPHEL_CONST_FRAME_IMMED);
@@ -2826,6 +2830,7 @@ function curl_multi_finish($data, $use_xml=true, $ntry=0, $echo = false) {
 }
 
 function createDefaultConfig($version, $port, $multisensor = false, $eyesis_mode = 0) { // / 0 - not eyesis, 1-3 - camera number
+    $lepton35 = $GLOBALS['camera_state_arr']['is_lepton35'];
 	$SENSOR_RUN = ELPHEL_CONST_SENSOR_RUN_CONT; // / turn on sensor in continuous mode
 	$COMPRESSOR_RUN = ELPHEL_CONST_COMPRESSOR_RUN_CONT; // / run compressor in continuous mode
 	$HISTMODE_Y = ELPHEL_CONST_TASKLET_HIST_ONCE;
@@ -2833,7 +2838,11 @@ function createDefaultConfig($version, $port, $multisensor = false, $eyesis_mode
 	$SCALES_CTL = ELPHEL_CONST_CSCALES_CTL_NORMAL;
 	// /overwrites
 	$TRIG_MASTER = 0; // modify for bottom 2 for eyesis? or rely on auto?
-	$TRIG = 4; // $multisensor ? 4 : 0;
+	if ($lepton35){
+	   $TRIG = 0;
+	} else {
+	   $TRIG = 4; // $multisensor ? 4 : 0;
+	}
 	
 	$appmode = get_application_mode();
 	if (($appmode&0xf0000)!=0){
@@ -2873,7 +2882,11 @@ function createDefaultConfig($version, $port, $multisensor = false, $eyesis_mode
 	$HISTWND_RHEIGHT = 0x8000;
 	$HISTWND_RLEFT = 0x8000;
 	$HISTWND_RTOP = 0x8000;
-    $COLOR = 0;
+	if ($lepton35) {
+	    $COLOR = 15; // raw
+	} else {
+        $COLOR = 0;
+	}
     //old:
     //$SENSOR_PHASE =  $multisensor ? 0x55 : 0x15;
     //new:
