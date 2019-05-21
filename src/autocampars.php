@@ -2949,9 +2949,11 @@ function createDefaultConfig($version, $port, $multisensor = false, $eyesis_mode
 	if ($lepton35) {
 	    $COLOR = 15; // raw
 	    $BITS =  16;
+	    $OVERSIZE = 1;
 	} else {
         $COLOR =  0;
         $BITS =   8;
+        $OVERSIZE = 0;
 	}
     //old:
     //$SENSOR_PHASE =  $multisensor ? 0x55 : 0x15;
@@ -3938,7 +3940,7 @@ DEFAULT_CONFIG
      <XMIT_TIMESTAMP>1</XMIT_TIMESTAMP>
 <!--     <SKIP_FRAMES>0</SKIP_FRAMES>
      <IRQ_SMART>3</IRQ_SMART> -->
-     <OVERSIZE>0</OVERSIZE>
+     <OVERSIZE>$OVERSIZE</OVERSIZE>
      <GTAB_R>$GAMMA_CORR</GTAB_R>
      <GTAB_G>$GAMMA_CORR</GTAB_G>
      <GTAB_GB>$GAMMA_CORR</GTAB_GB>
