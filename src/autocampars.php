@@ -919,6 +919,7 @@ function detect_camera(){
 		        //Check that now all frame parameters are the same?
 		        // reset sequencers
 		        log_msg("Before reset sequencers:\n"          .trim(file_get_contents('/sys/devices/soc0/elphel393-framepars@0/all_frames')));
+		        /*
 		        for ($port=0; $port < 4; $port++){
 		            $f = fopen ( $GLOBALS['sysfs_frame_seq'].$port, 'w' ); fwrite($f,'0',1); fclose ( $f );
 		            $f = fopen ( $GLOBALS['sysfs_i2c_seq'].$port, 'w' );   fwrite($f,'3',1); fclose ( $f ); // reset+run (copy frame number from frame_seq)
@@ -927,7 +928,8 @@ function detect_camera(){
 		                $f = fopen ( $GLOBALS['sysfs_chn_en'].$port, 'w' );    fwrite($f,'0',1); fclose ( $f ); // disable sensor channel
 		            }
 		        }
-		        log_msg("After reset sequencers:\n"          .trim(file_get_contents('/sys/devices/soc0/elphel393-framepars@0/all_frames')));
+		        */
+		        log_msg("After reset sequencers (not reset for Lepton):\n"          .trim(file_get_contents('/sys/devices/soc0/elphel393-framepars@0/all_frames')));
 		        // ======= First trigger, frame # = 1 ========.
 /*
  * // no trigger mode in Lepton		        
@@ -2950,10 +2952,12 @@ function createDefaultConfig($version, $port, $multisensor = false, $eyesis_mode
 	    $COLOR = 15; // raw
 	    $BITS =  16;
 	    $OVERSIZE = 1;
+	    $WOI_HEIGHT = 120; // w/o telemetry
 	} else {
         $COLOR =  0;
         $BITS =   8;
         $OVERSIZE = 0;
+        $WOI_HEIGHT = 10000;
 	}
     //old:
     //$SENSOR_PHASE =  $multisensor ? 0x55 : 0x15;
@@ -3870,7 +3874,7 @@ DEFAULT_CONFIG
      <WOI_LEFT>0</WOI_LEFT>
      <WOI_TOP>0</WOI_TOP>
      <WOI_WIDTH>10000</WOI_WIDTH>
-     <WOI_HEIGHT>10000</WOI_HEIGHT>
+     <WOI_HEIGHT>$WOI_HEIGHT</WOI_HEIGHT>
      <FLIPH>$FLIPH</FLIPH>
      <FLIPV>$FLIPV</FLIPV>
      <FPSFLAGS>0</FPSFLAGS>
