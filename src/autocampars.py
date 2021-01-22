@@ -120,7 +120,7 @@ def process_pyCmd(args):
         try:
             with open (STATE_FILE,"r") as f:
                 content = f.read()
-        except Exception, e:
+        except Exception as e:
             err=str(e)
         if not err:
             for line in content.split("\n"): #split it into lines
@@ -138,13 +138,13 @@ def process_pyCmd(args):
             if 'autocampars.php' in subprocess.check_output("ps -w",shell=True):
                 v=ET.SubElement(xml, 'autocampars')
                 v.text='"Running"'
-        except Exception, e:
+        except Exception as e:
             err=str(e)
                        
     elif fname == "start_gps_compass":
         try:
             rslt = subprocess.check_output("start_gps_compass.php",shell=True)
-        except Exception, e:
+        except Exception as e:
             err=str(e)
     elif fname == "disable_gpio_10389":
         with open (GPIO_10389,"w") as f:
@@ -160,25 +160,25 @@ def process_pyCmd(args):
             time.sleep(2) # check if needed
             with open (SATA_MODULE_CTRL,"w") as f:
                 print ('1',file=f)
-        except Exception, e:
+        except Exception as e:
             err=str(e)
     elif fname == "init_sata_0": #first step
         try:
             rslt += subprocess.check_output(PYDIR+"/x393sata.py",shell=True)       
             subprocess.call("modprobe ahci_elphel &",shell=True)
-        except Exception, e:
+        except Exception as e:
             err=str(e)
     elif fname == "init_sata_1": #second step (after some delay)
         try:
             with open (SATA_MODULE_CTRL,"w") as f:
                 print ('1',file=f)
             rslt += "OK"    
-        except Exception, e:
+        except Exception as e:
             err=str(e)
     elif fname == "ls": #just for testing
         try:
             rslt = subprocess.check_output("ls -all",shell=True) 
-        except Exception, e:
+        except Exception as e:
             err=str(e)
 
     if not xml:
@@ -210,7 +210,7 @@ def process_shell(args):
         cmd += ' '+ ' '.join(str(e) for e in fargs)
         try:
             rslt += subprocess.check_output(cmd,shell=True)       
-        except Exception, e:
+        except Exception as e:
             err=str(e)
     if rslt:
         result=ET.SubElement(xml, 'result')
@@ -246,7 +246,7 @@ def remote_parallel_urls(urls, timeout=0): #imeout will restart for each next ur
     def read_url(index, queue, url):
         try:
             queue.put((index, urllib2.urlopen(url).read()))
-        except Exception, e:
+        except Exception as e:
             # create xml with error message
             xml =  ET.Element('root')
             emsg = ET.SubElement(xml, 'error')
@@ -266,7 +266,7 @@ def remote_parallel_urls(urls, timeout=0): #imeout will restart for each next ur
         try:
             rslt = queue.get(block=True, timeout=timeout)
             rslts[rslt[0]] = rslt[1]
-        except Exception, e:
+        except Exception as e:
 #            print ("***** Error: ",str(e),rslt) ## Only timeout errors should be here
             break
 ##    print("*** remote_parallel_urls(): got ",rslts)  
