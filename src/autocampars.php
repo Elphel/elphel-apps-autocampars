@@ -3017,7 +3017,9 @@ function createDefaultConfig($version, $port, $multisensor = false, $eyesis_mode
 	}
 	
 	$appmode = get_application_mode();
-	if (($appmode&0xf0000)!=0){
+	if ($boson640){
+	    $TRIG_PERIOD =  1667000; //59.99Hz
+	}elseif (($appmode&0xf0000)!=0){
 		$TRIG_PERIOD = 25000000;
 	}else{
 		$TRIG_PERIOD = $eyesis_mode ?25000000 : 10000000; // 10 fps
