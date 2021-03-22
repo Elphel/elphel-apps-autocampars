@@ -857,6 +857,28 @@ function detect_camera(){
 			
 		    // detection process only removes, not adds channels. So device tree and 10389 should enable maximum possible
 			$needupdate=0;
+			$SENSOR_NONE = 0xfc; // make a PHP constant?
+			// For Boson - wait maximal boot time to get frame sync 250mm cables have sesnor detection pin grounded, so empty cable fakes sensor
+			if ($GLOBALS['camera_state_arr']['is_boson640']){
+			    $max_boot_time=15; // maximal Boson boot time
+			    log_msg('Waiting for Boson sensors to boot for '.$max_boot_time.' seconds');
+			    sleep($max_boot_time);
+			    foreach ($GLOBALS['ports'] as $port) {
+			        if (elphel_get_P_value ( $port, ELPHEL_SENSOR) != $sensor_code){ // unconnected will be remove later, old way
+			            if (elphel_get_frame($port) < 1){
+    			            log_msg("Sensor port ".$port." did not boot - disabling");
+    			            for ($chn =0; $chn <4; $chn++) {
+    			                $GLOBALS['sensors'][$port][$chn] = 'none';
+    			            }
+    			            elphel_set_P_value ( $port, ELPHEL_SENSOR, $SENSOR_NONE, 0, ELPHEL_CONST_FRAMEPAIR_FORCE_NEWPROC );
+    			            $needupdate=1;
+    			        } else {
+        			        log_msg("Sensor port ".$port." booted, frame = ".elphel_get_frame($port).", frames16: ".trim(file_get_contents('/sys/devices/soc0/elphel393-framepars@0/all_frames')));
+    			        }
+			        }
+			    }
+			}
+			
 			foreach ($GLOBALS['ports'] as $port) {
 				if (elphel_get_P_value ( $port, ELPHEL_SENSOR) != $sensor_code){
 					log_msg("#### Wrong/missing sensor on port ".$port.", code=".elphel_get_P_value ( $port, ELPHEL_SENSOR).
@@ -890,6 +912,10 @@ function detect_camera(){
 					}
 				}
 			}
+			
+			
+			
+			
 			if ($needupdate)  update_sysfs_sensors();
 			log_msg("Detected sensors: ".str_sensors($GLOBALS['sensors'],1),3);
 
@@ -978,6 +1004,7 @@ function detect_camera(){
 		    }
 		    if ($GLOBALS['camera_state_arr']['is_boson640']){
 		        log_msg('Temporary Boson640 code');
+		        // Wait for maximal Boson boot time
 		        foreach ($GLOBALS['ports'] as $port) { // only for detected ports
 		            /*
 		            if ($port==$GLOBALS['master_port']){ // no need to setup single-frame mode for Boson
@@ -3019,6 +3046,7 @@ function createDefaultConfig($version, $port, $multisensor = false, $eyesis_mode
 	$appmode = get_application_mode();
 	if ($boson640){
 	    $TRIG_PERIOD =  1667000; //59.99Hz
+	    $TRIG =         0; // maybe update later, for now - start with free-running
 	}elseif (($appmode&0xf0000)!=0){
 		$TRIG_PERIOD = 25000000;
 	}else{
