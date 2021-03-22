@@ -3551,7 +3551,7 @@ DEFAULT_CONFIG
      <TRIG_BITLENGTH>"Bit length minus 1 (in pixel clock cycles) when transmitting/receiving timestamps, without timestamps the output pulse width is 8*(TRIG_BITLENGTH+1). Legal values 2..255."</TRIG_BITLENGTH>
      <EXTERN_TIMESTAMP>"When 1 camera will use external timestamp (received over inter-camera synchronization cable) if it is available (no action when external syncronization is not connected), when 0 - local timestamp will be used"</EXTERN_TIMESTAMP>
      <XMIT_TIMESTAMP>"Specify output signal sent through internal/external connector (defined by TRIG_OUT). 0 - transmit just sync pulse (8*(TRIG_BITLENGTH+1) pixel clock periods long), 1 - pulse+timestamp 64*(TRIG_BITLENGTH+1) pixel clock periods long"</XMIT_TIMESTAMP>
-
+     <TRIG_DECIMATE>"Decimate trigger pulses by (TRIG_DECIMATE + 1). First trigger after setting TRIG_DECIMATE will go through"</TRIG_DECIMATE>
      <SKIP_FRAMES>"Changes parameter latencies tables pages for each of the trigger modes separately (0/1), currently should be 0"</SKIP_FRAMES>
      <I2C_QPERIOD>"Number of system clock periods in 1/4 of i2c SCL period to the sensor/sensor board, set by the driver"</I2C_QPERIOD>
      <I2C_BYTES>"Number of bytes in hardware i2c write (after slave addr) -0/1/2, set by the driver"</I2C_BYTES>
@@ -3854,6 +3854,7 @@ DEFAULT_CONFIG
      <TRIG_BITLENGTH>"init,trigger"</TRIG_BITLENGTH>
      <EXTERN_TIMESTAMP>"init,multisensor,trigger"</EXTERN_TIMESTAMP>
      <XMIT_TIMESTAMP>"init,multisensor,trigger"</XMIT_TIMESTAMP>
+     <TRIG_DECIMATE>"init,multisensor,trigger"</TRIG_DECIMATE>
      <SKIP_FRAMES>"init"</SKIP_FRAMES>
      <I2C_QPERIOD>"unsafe"</I2C_QPERIOD>
      <I2C_BYTES>"unsafe"</I2C_BYTES>
@@ -4085,6 +4086,7 @@ DEFAULT_CONFIG
      <TRIG_BITLENGTH>31</TRIG_BITLENGTH>
      <EXTERN_TIMESTAMP>1</EXTERN_TIMESTAMP>
      <XMIT_TIMESTAMP>1</XMIT_TIMESTAMP>
+     <TRIG_DECIMATE>0</TRIG_DECIMATE>
 <!--     <SKIP_FRAMES>0</SKIP_FRAMES>
      <IRQ_SMART>3</IRQ_SMART> -->
      <OVERSIZE>$OVERSIZE</OVERSIZE>
