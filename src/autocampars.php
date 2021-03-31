@@ -864,7 +864,7 @@ function detect_camera(){
 			    log_msg('Waiting for Boson sensors to boot for '.$max_boot_time.' seconds');
 			    sleep($max_boot_time);
 			    foreach ($GLOBALS['ports'] as $port) {
-			        if (elphel_get_P_value ( $port, ELPHEL_SENSOR) != $sensor_code){ // unconnected will be remove later, old way
+			        if (elphel_get_P_value ( $port, ELPHEL_SENSOR) == $sensor_code){ // unconnected will be remove later, old way
 			            if (elphel_get_frame($port) < 1){
     			            log_msg("Sensor port ".$port." did not boot - disabling");
     			            for ($chn =0; $chn <4; $chn++) {
