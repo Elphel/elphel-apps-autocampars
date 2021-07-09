@@ -843,6 +843,9 @@ function detect_camera(){
 					$frame_nums[$port]=elphel_get_frame($port);
 					fclose($f);
 					log_msg("Started detection for sensor port ".$port);
+					if ($GLOBALS['camera_state_arr']['is_boson640']){
+					    usleep(0.3*1000000); // prevent power problems with simultaneous FFC
+					}
 				}
 			}else{
 				// init framepars anyways - sysfs was updated earlier
