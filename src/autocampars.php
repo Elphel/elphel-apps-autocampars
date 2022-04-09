@@ -836,9 +836,11 @@ function detect_camera(){
 				foreach ($GLOBALS['ports'] as $port) {
 					$f = fopen ( $GLOBALS ['framepars_paths'] [$port], "w+");
 					fseek ( $f, ELPHEL_LSEEK_FRAMEPARS_INIT, SEEK_END );
-					// This is for 10359 - probably still OK for non-10359
-					elphel_set_P_value ( $port, ELPHEL_MULTI_CFG, 1); // cy22393 does not work on 10359. Not enough 3.3V?
+					// This is for 10359 - probably still OK for non-10359 04/07/2022 - disabling
+//					elphel_set_P_value ( $port, ELPHEL_MULTI_CFG, 1); // cy22393 does not work on 10359. Not enough 3.3V?
 					                                                  // now it may be OK (with separate 10359 power)
+					usleep(0.1*1000000); // wait before detect sensors?
+					
 					elphel_set_P_value ( $port, ELPHEL_SENSOR, 0x00, 0, ELPHEL_CONST_FRAMEPAIR_FORCE_NEWPROC );// / will start detection
 					$frame_nums[$port]=elphel_get_frame($port);
 					fclose($f);
@@ -1060,7 +1062,7 @@ function detect_camera(){
 		            $f = fopen ( $GLOBALS['sysfs_frame_seq'].$port, 'w' ); fwrite($f,'0',1); fclose ( $f );
 		            $f = fopen ( $GLOBALS['sysfs_i2c_seq'].$port, 'w' );   fwrite($f,'3',1); fclose ( $f ); // reset+run (copy frame number from frame_seq)
 		            if (!in_array($port, $GLOBALS['ports'])) {
-		                log_msg("Disabling sensor port  ".$port);
+		                log_msg("A:Disabling sensor port  ".$port);
 		                $f = fopen ( $GLOBALS['sysfs_chn_en'].$port, 'w' );    fwrite($f,'0',1); fclose ( $f ); // disable sensor channel
 		            }
 		        }
@@ -1126,7 +1128,7 @@ function detect_camera(){
 				$f = fopen ( $GLOBALS['sysfs_frame_seq'].$port, 'w' ); fwrite($f,'0',1); fclose ( $f );
 				$f = fopen ( $GLOBALS['sysfs_i2c_seq'].$port, 'w' );   fwrite($f,'3',1); fclose ( $f ); // reset+run (copy frame number from frame_seq)
 				if (!in_array($port, $GLOBALS['ports'])) {
-					log_msg("Disabling sensor port  ".$port);
+					log_msg("B:Disabling sensor port  ".$port);
 					$f = fopen ( $GLOBALS['sysfs_chn_en'].$port, 'w' );    fwrite($f,'0',1); fclose ( $f ); // disable sensor channel
 				}
 			}
@@ -3638,7 +3640,7 @@ DEFAULT_CONFIG
       <DGAINB>"&quot;Digital gain&quot; for the blue color channel - 17 bit unsigned value. Default value is 0x8000 fro 1.0, so up to 4X gain boost is available before saturation"</DGAINB>
      <CORING_PAGE>"Number of coring LUT page number. Current software programs only page 0 (of 8) using CORING_INDEX parameter."</CORING_PAGE>
      <TILES>Number of 16x16 (20x20) tiles in a compressed frame (readonly)</TILES>
-     <SENSOR_PHASE>"Sensor port signals phase coarse: [1:0] - data 90 degree shift, [6,3:2] - HACT 90 degree (two periods), [5:4] - VACT 90 degree shift  </SENSOR_PHASE>
+     <SENSOR_PHASE>"Sensor port signals phase coarse: [1:0] - data 90 degree shift, [6,3:2] - HACT 90 degree (two periods), [5:4] - VACT 90 degree shift. Typical values for different cable lengths: 0x00, 0x15, 0x2a, 0x7f. Turn off autoexposure and white balance before adjusting.  </SENSOR_PHASE>
      <TEMPERATURE_PERIOD>"Period of sensor temperature measurements, ms"</TEMPERATURE_PERIOD>
      <AUTOEXP_ON>"1 - autoexposure enabled when, 0 - autoexpousre disabled. Autoexposure can still be off if the bit responsible for autoexposure daemon in DAEMON_EN is turned off - in the latter case the whole autoexposure daemon will be disabled, including white balancing and hdr mode also."</AUTOEXP_ON>
      <HISTWND_RWIDTH>"Histogram (used for autoexposure, white balancing and just histograms display) window width, relative to the window (WOI) width. It is defined as a fraction of 65536(0x10000), so 0x8000 is 50%"</HISTWND_RWIDTH>
