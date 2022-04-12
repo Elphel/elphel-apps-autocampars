@@ -125,7 +125,7 @@
   changed default IP back to 192.168.0.9 (temporarily was 192.168.0.7)
 
   Revision 1.4  2008/11/30 05:34:56  elphel
-  temporary disabled white balance - it need to be updated fro the new gain control
+  temporary disabled white balance - it need to be updated for the new gain control
 
   Revision 1.3  2008/11/30 05:01:03  elphel
   Changing gains/scales behavior
@@ -589,6 +589,7 @@ function reset_camera(){
         					'DAEMON_EN' => 0
         			), $frame_to_set, ELPHEL_CONST_FRAMEPAIR_FORCE_NEWPROC ); // was -1 ("this frame")
         			elphel_set_P_value ( $port, ELPHEL_TRIG_DECIMATE,  0, ELPHEL_CONST_FRAME_IMMED, ELPHEL_CONST_FRAMEPAIR_FORCE_NEWPROC);
+        			elphel_set_P_value ( $port, ELPHEL_TRIG_DECIMATE,  0);// above does not propagate to the rest of the ring buffer 04.11.2022
     			}
 			    // advance frames, so next settings will be ASAP (sent immediate, not limited to 64?)
 			    // disable trig period decimation
@@ -1401,6 +1402,7 @@ function init_cameras(){ // $page) { init can only be from default page as page 
 			    if (array_key_exists('TRIG_PERIOD',$GLOBALS['trig_pars']) && ($GLOBALS['trig_pars']['TRIG_PERIOD'] > 255)){
 			        $trig_period = $GLOBALS['trig_pars']['TRIG_PERIOD'];
 			        unset($GLOBALS['trig_pars']['TRIG_PERIOD']);
+			        log_msg ('trig_period = '.$trig_period." unset(GLOBALS['trig_pars']['TRIG_PERIOD'])",0);
 			    }
 			    elphel_set_P_arr ($GLOBALS['master_port'], $GLOBALS['trig_pars']); // set other parameters - they will not take effect immediately
 			    if ($all_trig_decimate) {
@@ -1418,6 +1420,7 @@ function init_cameras(){ // $page) { init can only be from default page as page 
 			        // Set parameter immediately
 			        //				    log_msg("pre3.Trigger $i:\n".file_get_contents($GLOBALS['sysfs_all_frames']));
 			        elphel_set_P_value ( $GLOBALS['master_port'], ELPHEL_TRIG_PERIOD,  $trig_period, ELPHEL_CONST_FRAME_IMMED, ELPHEL_CONST_FRAMEPAIR_FORCE_NEWPROC);
+			        elphel_set_P_value ( $GLOBALS['master_port'], ELPHEL_TRIG_PERIOD,  $trig_period); // above does not propagate to the rest of the ring buffer 04.11.2022
 			        elphel_set_P_value ( $GLOBALS['master_port'], ELPHEL_TRIG_CONDITION,   $trig_condition);
 			        if ( $GLOBALS['camera_state_arr']['no_async']){ // turn on triggered mode on all ports (they were off)
 			            elphel_set_P_value ( $GLOBALS['master_port'], ELPHEL_TRIG, $trig, ELPHEL_CONST_FRAME_ASAP, 0, $broadcast);
@@ -1452,6 +1455,8 @@ function init_cameras(){ // $page) { init can only be from default page as page 
     			        }
 			        }
 			        elphel_set_P_value ( $GLOBALS['master_port'], ELPHEL_TRIG_CONDITION,   $trig_condition, ELPHEL_CONST_FRAME_IMMED, ELPHEL_CONST_FRAMEPAIR_FORCE_NEWPROC);
+			        elphel_set_P_value ( $GLOBALS['master_port'], ELPHEL_TRIG_CONDITION,   $trig_condition); // above does not propagate to the rest of the ring buffer 04.11.2022
+			        
 			        if ( $GLOBALS['camera_state_arr']['no_async']){ // turn on triggered mode on all ports (they were off)
 			            elphel_skip_frames($GLOBALS['master_port'] , ELPHEL_CONST_FRAME_DEAFAULT_AHEAD); // skip triggered frames
 			            // turn on external triggered mode
@@ -1507,18 +1512,22 @@ function init_cameras(){ // $page) { init can only be from default page as page 
 // Now elphel_set_P_arr should work with ELPHEL_CONST_FRAME_IMMED, before it was only implemented for elphel_set_P_value
 //						elphel_set_P_arr ($GLOBALS['master_port'], array('TRIG_OUT' => $trig_out), ELPHEL_CONST_FRAME_IMMED);
 						elphel_set_P_value ($GLOBALS['master_port'], ELPHEL_TRIG_OUT, $trig_out, ELPHEL_CONST_FRAME_IMMED);
+						elphel_set_P_value ($GLOBALS['master_port'], ELPHEL_TRIG_OUT, $trig_out); // above does not propagate to the rest of the ring buffer 04.11.2022
 						usleep ($GLOBALS['camera_state_arr']['max_frame_time']);
 					}
 					if ($trig_period){
 					    elphel_set_P_value ( $GLOBALS['master_port'], ELPHEL_TRIG_PERIOD,  $trig_period, ELPHEL_CONST_FRAME_IMMED);
+					    elphel_set_P_value ( $GLOBALS['master_port'], ELPHEL_TRIG_PERIOD,  $trig_period); // above does not propagate to the rest of the ring buffer? 04.11.2022
 					    elphel_set_P_arr ( $port, $all_trig_decimate[$port], ELPHEL_CONST_FRAME_IMMED, ELPHEL_CONST_FRAMEPAIR_FORCE_NEWPROC );
-						log_msg("Started camera in periodic mode, period = ".(0.00000001*$trig_period)." s",3);
+					    elphel_set_P_arr ( $port, $all_trig_decimate[$port]); // above does not propagate to the rest of the ring buffer? 04.11.2022
+					    log_msg("Started camera in periodic mode, period = ".(0.00000001*$trig_period)." s",3);
 					} else { // manually advance frames
 						if (!$GLOBALS['camera_state_arr']['frames_skip_more'] >  ELPHEL_CONST_FRAME_DEAFAULT_AHEAD){
 							$GLOBALS['camera_state_arr']['frames_skip_more'] =  ELPHEL_CONST_FRAME_DEAFAULT_AHEAD + 1;
 						}
 						log_msg("Skipping  ".$GLOBALS['camera_state_arr']['frames_skip_more']." more frames");
 						elphel_set_P_value ( $GLOBALS['master_port'], ELPHEL_TRIG_DECIMATE,  0, ELPHEL_CONST_FRAME_IMMED, ELPHEL_CONST_FRAMEPAIR_FORCE_NEWPROC);
+						elphel_set_P_value ( $GLOBALS['master_port'], ELPHEL_TRIG_DECIMATE,  0);// above does not propagate to the rest of the ring buffer? 04.11.2022
 						for ($i = 0; $i<= $GLOBALS['camera_state_arr']['frames_skip_more']; $i++){
 							elphel_set_P_value ( $GLOBALS['master_port'], ELPHEL_TRIG_PERIOD,  1, ELPHEL_CONST_FRAME_IMMED, ELPHEL_CONST_FRAMEPAIR_FORCE_NEWPROC);
 							usleep ($GLOBALS['camera_state_arr']['max_frame_time']);
@@ -1533,6 +1542,7 @@ function init_cameras(){ // $page) { init can only be from default page as page 
 					//elphel_set_P_arr  ($GLOBALS['master_port'], $GLOBALS['trig_pars'], $frame_to_set);
 					//elphel_set_P_value($GLOBALS['master_port'], ELPHEL_TRIG_CONDITION, $trig_condition, $frame_to_set+3);
 					elphel_set_P_arr  ($GLOBALS['master_port'], $GLOBALS['trig_pars'], ELPHEL_CONST_FRAME_IMMED, ELPHEL_CONST_FRAMEPAIR_FORCE_NEWPROC);
+					elphel_set_P_arr  ($GLOBALS['master_port'], $GLOBALS['trig_pars']);// above does not propagate to the rest of the ring buffer? 04.11.2022
 					elphel_set_P_value($GLOBALS['master_port'], ELPHEL_TRIG_CONDITION, $trig_condition);
 					
 					log_msg ('Independently started camera (3). If not master camera - it will wait for external triggers');
@@ -3634,10 +3644,10 @@ DEFAULT_CONFIG
       <VIGNET_SHL>"Additional shift left of the vignetting correction multiplied by digital gain. Default 1"</VIGNET_SHL>
       <SCALE_ZERO_IN>"Will be subtracted from the 16-bit unsigned scaled sensor data before multiplying by vignetting correction and color balancing scale. It is a 17-bit signed data"</SCALE_ZERO_IN>
       <SCALE_ZERO_OUT>"Will be added to the result of multiplication of the 16-bit sennsor data (with optionally subtracted SCALE_ZERO_IN) by color correction coefficient/vignetting correction coefficient"</SCALE_ZERO_OUT>
-      <DGAINR>"&quot;Digital gain&quot; for the red color channel - 17 bit unsigned value. Default value is 0x8000 fro 1.0, so up to 4X gain boost is available before saturation"</DGAINR>
-      <DGAING>"&quot;Digital gain&quot; for the green color channel - 17 bit unsigned value. Default value is 0x8000 fro 1.0, so up to 4X gain boost is available before saturation"</DGAING>
-      <DGAINGB>"&quot;Digital gain&quot; for second green color channel - 17 bit unsigned value. Default value is 0x8000 fro 1.0, so up to 4X gain boost is available before saturation"</DGAINGB>
-      <DGAINB>"&quot;Digital gain&quot; for the blue color channel - 17 bit unsigned value. Default value is 0x8000 fro 1.0, so up to 4X gain boost is available before saturation"</DGAINB>
+      <DGAINR>"&quot;Digital gain&quot; for the red color channel - 17 bit unsigned value. Default value is 0x8000 for 1.0, so up to 4X gain boost is available before saturation"</DGAINR>
+      <DGAING>"&quot;Digital gain&quot; for the green color channel - 17 bit unsigned value. Default value is 0x8000 for 1.0, so up to 4X gain boost is available before saturation"</DGAING>
+      <DGAINGB>"&quot;Digital gain&quot; for second green color channel - 17 bit unsigned value. Default value is 0x8000 for 1.0, so up to 4X gain boost is available before saturation"</DGAINGB>
+      <DGAINB>"&quot;Digital gain&quot; for the blue color channel - 17 bit unsigned value. Default value is 0x8000 for 1.0, so up to 4X gain boost is available before saturation"</DGAINB>
      <CORING_PAGE>"Number of coring LUT page number. Current software programs only page 0 (of 8) using CORING_INDEX parameter."</CORING_PAGE>
      <TILES>Number of 16x16 (20x20) tiles in a compressed frame (readonly)</TILES>
      <SENSOR_PHASE>"Sensor port signals phase coarse: [1:0] - data 90 degree shift, [6,3:2] - HACT 90 degree (two periods), [5:4] - VACT 90 degree shift. Typical values for different cable lengths: 0x00, 0x15, 0x2a, 0x7f. Turn off autoexposure and white balance before adjusting.  </SENSOR_PHASE>
