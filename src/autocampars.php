@@ -1734,6 +1734,7 @@ function respond_xml($result,$error=null,$color_mode = 3){ // default white bold
 			$xml->addChild ('error','"'.$error.'"');
 		}
 		$rslt=$xml->asXML();
+		header('Access-Control-Allow-Origin: *');
 		header("Content-Type: text/xml");
 		header("Content-Length: ".strlen($rslt)."\n");
 		header("Pragma: no-cache\n");
@@ -2102,6 +2103,7 @@ function reboot_me(){
 	if (array_key_exists ( 'reboot', $_GET )) {
 		// TODO: change the response to respond_xml()
 		$rslt = "<?xml version=\"1.0\"?><root><reboot>Rebooting standalone camera...</reboot></root>\n";
+		header('Access-Control-Allow-Origin: *');
 		header("Content-Type: text/xml");
 		header("Content-Length: ".strlen($rslt)."\n");
 		header("Pragma: no-cache\n");
