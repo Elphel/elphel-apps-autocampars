@@ -3434,16 +3434,38 @@ function createDefaultConfig($version, $port, $multisensor = false, $eyesis_mode
 	// adding sensor-specific SENSOR_REGS
 	if ($boson640){
 	    $sensor_regs_groups = <<<SENSOR_REGS_GROUPS
+    <SENSOR_REGS0>"sensor_regs"</SENSOR_REGS0>
+    <SENSOR_REGS1>"sensor_regs"</SENSOR_REGS1>
+    <SENSOR_REGS2>"sensor_regs"</SENSOR_REGS2>
     <SENSOR_REGS4>"init,sensor_regs"</SENSOR_REGS4>
+    <SENSOR_REGS7>"sensor_regs"</SENSOR_REGS7>
+    <SENSOR_REGS22>"sensor_regs"</SENSOR_REGS22>
     <SENSOR_REGS23>"sensor_regs"</SENSOR_REGS23>
     <SENSOR_REGS26>"sensor_regs"</SENSOR_REGS26>
     <SENSOR_REGS29>"init,sensor_regs"</SENSOR_REGS29>
+    <SENSOR_REGS36>"sensor_regs"</SENSOR_REGS36>
+    <SENSOR_REGS42>"sensor_regs"</SENSOR_REGS42>
+    <SENSOR_REGS43>"sensor_regs"</SENSOR_REGS43>
+    <SENSOR_REGS46>"sensor_regs"</SENSOR_REGS46>
+    <SENSOR_REGS51>"sensor_regs"</SENSOR_REGS51>
+
 SENSOR_REGS_GROUPS;
 	    $sensor_regs_descriptions = <<<SENSOR_REGS_DESCRIPTIONS
-    <SENSOR_REGS4>"FFC integration frames (2,4,8,16). tOTAL ffc TIME IS Twice this value"</SENSOR_REGS4>
+    <SENSOR_REGS0>"Vignetting. Enables / disables application of per-pixel gain coefficients"</SENSOR_REGS0>
+    <SENSOR_REGS1>"FFC. Enables / disables application of per-pixel Flat-Field Correction (FFC) coefficients"</SENSOR_REGS1>
+    <SENSOR_REGS2>"Temp compensation. Enables / disables application of per-pixel temperature corrections"</SENSOR_REGS2>
+    <SENSOR_REGS4>"FFC integration frames (2,4,8,16). Total FFC time is twice this value"</SENSOR_REGS4>
+    <SENSOR_REGS7>"SFFC enable. Enables / disables supplemental flat-field correction (SFFC). Default is ON"</SENSOR_REGS7>
+    <SENSOR_REGS22>"BPR enable. Enables / disables the bad-pixel replace (BPR) algorithm. Default is ON"</SENSOR_REGS22>
     <SENSOR_REGS23>"Telemetry control: 0 - disable, 1 - enable (controlled through WOI_WIDTH)"</SENSOR_REGS23>
     <SENSOR_REGS26>"Run FFC (any value)"</SENSOR_REGS26>
     <SENSOR_REGS29>"FFC mode: 0 - manual, 1 - auto , 2 - external, 3 - shutter test"</SENSOR_REGS29>
+    <SENSOR_REGS36>"SCNR enable. Enables / disables Spatial Column Noise Reduction. Default is ON"</SENSOR_REGS36>
+    <SENSOR_REGS42>"TF enable. Enables / disables Temporal Noise Reduction (TNR). BUG: HANGS CAMERA"</SENSOR_REGS42>
+    <SENSOR_REGS43>"TF delta NF. Sets the Delta NF value. The delta_nf modifies the filter behavior by scaling the index into the table of weight. Set to 255 to disable TF"</SENSOR_REGS43>
+    <SENSOR_REGS46>"SPNR enable. Enable/disable Spatial Pattern Noise Reduction (SPNR) correction. Default is ON"</SENSOR_REGS46>
+    <SENSOR_REGS51>"SRNR enable. Enable/disable Spatial Row Noise Reduction. Default is ON"</SENSOR_REGS51>
+
 SENSOR_REGS_DESCRIPTIONS;
 	    $sensor_regs_defaults = <<<SENSOR_REGS_DEFAULTS
     <SENSOR_REGS4>"8"</SENSOR_REGS4>
